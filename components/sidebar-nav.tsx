@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { getUserMeetings } from "@/lib/meeting-data"
+import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { getUserMeetings } from "@/lib/meeting-data";
 
 export default function SidebarNav({ activeId }: { activeId?: number }) {
-  const router = useRouter()
+  const router = useRouter();
   // Only get the current user's meetings for the sidebar
-  const userMeetings = getUserMeetings()
+  const userMeetings = getUserMeetings();
 
   // Mock total thanks count - in a real app, this would come from your backend
-  const totalThanks = 42
+  const totalThanks = 42;
 
   const handleLogout = () => {
     // Clear authentication
-    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("isAuthenticated");
     // Redirect to login
-    router.push("/login")
-  }
+    router.push("/login");
+  };
 
   return (
     <div className="w-64 border-r bg-navy text-cream flex flex-col h-full">
@@ -62,21 +62,22 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
       {/* User's Own Meetings/Documents */}
       <div className="flex-1 overflow-auto">
         <div className="p-2">
-          <h3 className="text-xs font-medium text-cream/70 px-3 py-2">マイナレッジ</h3>
+          <h3 className="text-xs font-medium text-cream/70 px-3 py-2">
+            マイナレッジ
+          </h3>
           {Object.entries(
-            userMeetings.reduce(
-              (acc, meeting) => {
-                if (!acc[meeting.date]) {
-                  acc[meeting.date] = []
-                }
-                acc[meeting.date].push(meeting)
-                return acc
-              },
-              {} as Record<string, typeof userMeetings>,
-            ),
+            userMeetings.reduce((acc, meeting) => {
+              if (!acc[meeting.date]) {
+                acc[meeting.date] = [];
+              }
+              acc[meeting.date].push(meeting);
+              return acc;
+            }, {} as Record<string, typeof userMeetings>)
           ).map(([date, meetings]) => (
             <div key={date} className="mb-4">
-              <h3 className="text-xs font-medium text-cream/70 px-3 py-2">{date}</h3>
+              <h3 className="text-xs font-medium text-cream/70 px-3 py-2">
+                {date}
+              </h3>
               <ul className="space-y-1">
                 {meetings.map((meeting) => (
                   <li key={meeting.id}>
@@ -84,7 +85,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
                       href={`/meeting/${meeting.id}`}
                       className={cn(
                         "block px-3 py-2 rounded-md hover:bg-blue/20 text-sm transition-colors",
-                        activeId === meeting.id && "bg-blue/30 font-medium",
+                        activeId === meeting.id && "bg-blue/30 font-medium"
                       )}
                     >
                       {meeting.title}
@@ -129,6 +130,5 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

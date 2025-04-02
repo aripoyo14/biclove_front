@@ -259,25 +259,22 @@ export default function RecordMeeting() {
     const newMeeting = {
       id: newMeetingId,
       title: meetingSummary.title || "Product Roadmap Discussion", // This would come from user input in a real app
-      //date: new Date().toISOString().split("T")[0],
       created_at: new Date().toISOString(),
-      //participants: ["Sarah Johnson", "Michael Chen", "David Kim"],
       user_id: currentUser,
       summary: meetingSummary.summary,
       knowledge: meetingSummary.knowledge,
       //knowledgeTags: meetingSummary.knowledgeTags,
       issues: meetingSummary.issues,
       //challengeTags: meetingSummary.challengeTags,
-      solutionKnowledge: meetingSummary.solutionKnowledge,
+      //solutionKnowledge: meetingSummary.solutionKnowledge,
       //messages: [],
       //isDocument: false,
-
     };
 
     // In a real app, you would add this to your database
     // For now, we'll just navigate to an existing meeting
     try {
-      const res = await fetch("http://127.0.0.1:8001" + "/meeting", {
+      const res = await fetch("http://127.0.0.1:8000" + "/meeting", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMeeting),

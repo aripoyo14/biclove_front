@@ -258,23 +258,23 @@ export default function RecordMeeting() {
     // Create a new meeting object
     const newMeeting = {
       id: newMeetingId,
-      title: meetingSummary.title || "Product Roadmap Discussion", // This would come from user input in a real app
-      created_at: new Date().toISOString(),
       user_id: currentUser,
+      title: meetingSummary.title || "Product Roadmap Discussion", // This would come from user input in a real app
       summary: meetingSummary.summary,
       knowledge: meetingSummary.knowledge,
-      //knowledgeTags: meetingSummary.knowledgeTags,
       issues: meetingSummary.issues,
+      solutionKnowledge: meetingSummary.solutionKnowledge,
+      created_at: new Date().toISOString(),
+      //knowledgeTags: meetingSummary.knowledgeTags,
       //challengeTags: meetingSummary.challengeTags,
-      //solutionKnowledge: meetingSummary.solutionKnowledge,
       //messages: [],
       //isDocument: false,
     };
-
+    console.log("送信されたnewMeetingの内容", newMeeting);
     // In a real app, you would add this to your database
     // For now, we'll just navigate to an existing meeting
     try {
-      const res = await fetch("http://127.0.0.1:8000" + "/meeting", {
+      const res = await fetch("http://127.0.0.1:8001" + "/meeting", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newMeeting),

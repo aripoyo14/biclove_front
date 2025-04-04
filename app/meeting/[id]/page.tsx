@@ -1,13 +1,14 @@
 "use client";
 
 import { use } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import SidebarNav from "@/components/sidebar-nav";
 import {
-  getMeetingData,
+  getLatestMeetings,
   isUserMeeting,
   findRelatedKnowledge,
+  Meeting,
 } from "@/lib/meeting-data";
 import {
   BookOpen,
@@ -51,26 +52,47 @@ export default function MeetingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
+  const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({});
 
-  const [expandedRefs, setExpandedRefs] = useState<number[]>([])
-  const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({})
-
-  const meetingId = Number.parseInt(id);
-  const meeting = getMeetingData(meetingId);
+  useEffect(() => {
+    const fetchMeeting = async () => {
+      try {
+        const meetings = await getLatestMeetings();
+        console.log('Fetched meetings:', meetings);
+        console.log('Looking for meeting with id:', Number.parseInt(id));
+        const foundMeeting = meetings.find(m => m.id === Number.parseInt(id));
+        console.log('Found meeting:', foundMeeting);
+        
+        if (!foundMeeting) {
+          console.log('Meeting not found, redirecting to 404');
+          notFound();
+          return;
+        }
+        
+        setMeeting(foundMeeting);
+      } catch (error) {
+        console.error('Error fetching meeting:', error);
+        notFound();
+      }
+    };
+    fetchMeeting();
+  }, [id]);
 
   if (!meeting) {
-    notFound();
+    return null; // またはローディングスピナーを表示
   }
 
   // Check if this is the current user's meeting
-  const isOwner = isUserMeeting(meetingId);
+  const isOwner = isUserMeeting(meeting.id);
 
   // Check if this is a document (uploaded) or a recording
   const isDocument = meeting.isDocument === true;
 
   // Get solution proposal and references only for user's own meetings
   const solutionProposal = isOwner ? generateSolutionProposal(meeting) : "";
-  const references = isOwner ? getRelevantReferences(meetingId) : [];
+  const references = isOwner ? getRelevantReferences(meeting.id) : [];
 
   const toggleReference = (index: number) => {
     setExpandedRefs((prev) =>
@@ -93,43 +115,29 @@ export default function MeetingPage({
   };
 
   // Parse knowledge into multiple items with titles from the meeting data
-  const knowledgeItems: KnowledgeItem[] = parseKnowledgeItems(
-    meeting.knowledge,
-    meeting.knowledgeTags,
-    meeting.knowledgeTitles || []
-  );
+  const knowledgeItems: KnowledgeItem[] = meeting.knowledges.map(knowledge => ({
+    title: knowledge.title,
+    content: knowledge.content,
+    tags: [], // タグは現在の実装では使用されていないため空配列を設定
+  }));
 
   // Parse challenges into multiple items with titles from the meeting data
-  const challengeItems: ChallengeItem[] = parseChallengeItems(
-    meeting.issues,
-    meeting.challengeTags,
-    meeting.challengeTitles || []
-  ).map((item) => {
-    // Find related knowledge for all recordings (not documents)
-    if (!isDocument) {
-      // Find related knowledge specifically for this challenge's tags
-      const relatedItems = findRelatedKnowledge(item.tags);
-
-      // Sort by relevance to ensure most helpful knowledge appears first
-      relatedItems.sort((a, b) => b.matchCount - a.matchCount);
-
-      return {
-        ...item,
-        relatedKnowledge: relatedItems.map((related) => ({
-          ...related,
-          relevance: related.matchCount, // Store the match count as relevance
-        })),
-      };
-    }
-    return item;
-  });
+  const challengeItems: ChallengeItem[] = meeting.challenges.map(challenge => ({
+    title: challenge.title,
+    content: challenge.content,
+    tags: [], // タグは現在の実装では使用されていないため空配列を設定
+    relatedKnowledge: !isDocument ? findRelatedKnowledge([]).map(related => ({
+      ...related,
+      relevance: related.matchingTags?.length || 0,
+    })) : undefined,
+  }));
 
   // Check if we're viewing from the sidebar (we'll always show the content but hide Hints)
   const isViewingFromSidebar = false;
 
   return (
     <div className="flex h-screen bg-cream">
-      <SidebarNav activeId={meetingId} />
+      <SidebarNav activeId={meeting.id} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b p-4 flex justify-between items-center border-blue/10">
@@ -178,7 +186,7 @@ export default function MeetingPage({
                   <div className="flex items-center gap-4 text-navy/70">
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-blue" />
-                      <span>{meeting.date}</span>
+                      <span>{new Date(meeting.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-blue" />
@@ -193,9 +201,9 @@ export default function MeetingPage({
                 <div>
                   {isOwner
                     ? "あなたのナレッジ"
-                    : `${meeting.owner.split("@")[0]}さんのナレッジ`}
+                    : `ユーザー${meeting.user_id}さんのナレッジ`}
                 </div>
-                <div>{meeting.date}</div>
+                <div>{new Date(meeting.created_at).toLocaleDateString()}</div>
               </div>
 
               {/* Summary - Show for all recordings and owner's uploads */}

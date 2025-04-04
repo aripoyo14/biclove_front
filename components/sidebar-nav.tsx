@@ -4,12 +4,20 @@ import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { getUserMeetings } from "@/lib/meeting-data"
+import { getLatestMeetings, type Meeting } from "@/lib/meeting-data"
+import { useEffect, useState } from "react"
 
 export default function SidebarNav({ activeId }: { activeId?: number }) {
   const router = useRouter()
-  // Only get the current user's meetings for the sidebar
-  const userMeetings = getUserMeetings()
+  const [userMeetings, setUserMeetings] = useState<Meeting[]>([])
+
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      const meetings = await getLatestMeetings()
+      setUserMeetings(meetings)
+    }
+    fetchMeetings()
+  }, [])
 
   // Mock total thanks count - in a real app, this would come from your backend
   const totalThanks = 42
@@ -65,7 +73,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
           <h3 className="text-xs font-medium text-cream/70 px-3 py-2">マイナレッジ</h3>
           {Object.entries(
             userMeetings.reduce(
-              (acc, meeting) => {
+              (acc: Record<string, Meeting[]>, meeting: Meeting) => {
                 if (!acc[meeting.date]) {
                   acc[meeting.date] = []
                 }

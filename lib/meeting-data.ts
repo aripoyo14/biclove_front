@@ -24,7 +24,7 @@ export interface Meeting {
 }
 
 // Mock current user
-export const currentUser = "biclove@gmail.com"
+export const currentUser = 1
 
 const meetingsData: Meeting[] = [
   {

@@ -170,6 +170,7 @@ export default function RecordMeeting() {
       };
 
       recorder.stop(); // 録音停止（ここでは saveRecording を呼ばない）
+
       setRecordingState(RecordingState.STOPPED);
 
       if (timerRef.current) {

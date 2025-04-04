@@ -75,6 +75,11 @@ export default function RecordMeeting() {
     solutionKnowledge: "",
   });
 
+  //==============================================
+  //★★20250404追加 🆕 会議タイトルを保存するためのステート
+  //==============================================
+  const [meetingTitle, setMeetingTitle] = useState<string>("");
+
   // 会議IDと各項目のIDを保存する
   const [knowledgeId, setKnowledgeId] = useState<number | null>(null);
   const [challengeId, setChallengeId] = useState<number | null>(null);
@@ -254,6 +259,11 @@ export default function RecordMeeting() {
       // サーバーから返ってきたJSONデータを取得
       const result = await response.json();
 
+      //==============================================
+      // ★★20250404追加　🆕 タイトルをステートに保存！
+      //==============================================
+      setMeetingTitle(result.title);
+
       //録音完了時にmeeting_idを保存
       setMeetingId(result.meeting_id); // ← ★ここ追加（ステートに保存）
       setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
@@ -417,7 +427,9 @@ export default function RecordMeeting() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: "編集後のタイトル（仮）", // 今は固定文字、あとで状態にすることも可能
+            //======================================================
+            title: meetingTitle, // 20250404追加書き換え(当初は”編集後のタイトル（仮）”となっていた)
+            //======================================================
             summary: meetingSummary.summary,
             knowledges: [
               {

@@ -38,15 +38,19 @@ enum RecordingState {
   COMPLETED = 6,
 }
 
+//20250404追加（knowledgeTitle challengeTitle)======================================
 // 会議の要約データ構造を定義
 interface MeetingSummary {
   summary: string;
   knowledge: string;
+  knowledgeTitle: string; // ← 20250404追加
   knowledgeTags: string[];
   issues: string;
+  challengeTitle: string; // ← 20250404追加
   challengeTags: string[]; // Changed from issueTags
   solutionKnowledge: string;
 }
+//=================================================================================
 
 export default function RecordMeeting() {
   const router = useRouter();
@@ -65,15 +69,24 @@ export default function RecordMeeting() {
   // 編集モードかどうか
   const [isEditing, setIsEditing] = useState(false);
 
+  // 20250404追加（knowledgeTitle　challengeTitle）==========================================================
   // 会議の内容（サマリー、知見、悩みなど）を保持するステート
   const [meetingSummary, setMeetingSummary] = useState<MeetingSummary>({
     summary: "",
     knowledge: "",
+    knowledgeTitle: "", // ← 20250404追加
     knowledgeTags: [],
     issues: "",
+    challengeTitle: "", // ← 20250404追加
     challengeTags: [], // Changed from issueTags
     solutionKnowledge: "",
   });
+  //========================================================================================================
+
+  //==============================================
+  //★★20250404追加 🆕 会議タイトルを保存するためのステート
+  const [meetingTitle, setMeetingTitle] = useState<string>("");
+  //==============================================
 
   // 会議IDと各項目のIDを保存する
   const [knowledgeId, setKnowledgeId] = useState<number | null>(null);
@@ -255,6 +268,11 @@ export default function RecordMeeting() {
       // サーバーから返ってきたJSONデータを取得
       const result = await response.json();
 
+      //==============================================
+      // ★★20250404追加　🆕 タイトルをステートに保存！
+      setMeetingTitle(result.title);
+      //==============================================
+
       //録音完了時にmeeting_idを保存
       setMeetingId(result.meeting_id); // ← ★ここ追加（ステートに保存）
       setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
@@ -262,19 +280,25 @@ export default function RecordMeeting() {
 
       console.log("アップロード成功:", result);
 
+      //20250404追加（knowledgeTitle　challengeTitle)=============================================
       // サーバーからの結果を画面に表示するため、stateに保存
       setMeetingSummary({
         summary: result.parsed_summary.summary,
         knowledge: result.parsed_summary.knowledges
           .map((k) => k.content)
           .join("\n"),
+        knowledgeTitle:
+          result.parsed_summary.knowledges[0]?.title || "自動知見タイトル", // ← 20250404追加
         knowledgeTags: [], // ← タグが必要なら後でここを拡張
         issues: result.parsed_summary.challenges
           .map((c) => c.content)
           .join("\n"),
+        challengeTitle:
+          result.parsed_summary.challenges[0]?.title || "自動課題タイトル", // ← 20250404追加
         challengeTags: [],
         solutionKnowledge: "", // 今は未使用なので空でOK
       });
+      //===========================================================================================
 
       // UIの状態を「完了」に変更し、要約表示などを可能にする
       setRecordingState(RecordingState.COMPLETED);
@@ -418,12 +442,16 @@ export default function RecordMeeting() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: "編集後のタイトル（仮）", // 今は固定文字、あとで状態にすることも可能
+            //======================================================
+            title: meetingTitle, // ← 20250404追加書き換え　これで編集できる(当初は”編集後のタイトル（仮）”となっていた)
+            //======================================================
             summary: meetingSummary.summary,
             knowledges: [
               {
                 id: knowledgeId, // ← ここを state から渡す
-                title: "仮知見タイトル",
+                //==================================================
+                title: meetingSummary.knowledgeTitle, // ← 20250404追加書き換え
+                //==================================================
                 content: meetingSummary.knowledge,
                 tags: meetingSummary.knowledgeTags,
               },
@@ -431,7 +459,9 @@ export default function RecordMeeting() {
             challenges: [
               {
                 id: challengeId, // ← ここも同様に
-                title: "仮課題タイトル",
+                //=================================================
+                title: meetingSummary.challengeTitle, // ← 20250404追加書き換え
+                //=================================================
                 content: meetingSummary.issues,
                 tags: meetingSummary.challengeTags,
               },

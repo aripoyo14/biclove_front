@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import KnowledgeCarousel from "@/components/knowledge-carousel"
 import SidebarNav from "@/components/sidebar-nav"
 import SearchResults from "@/components/search-results"
-import { getOtherUsersMeetings } from "@/lib/meeting-data"
+//削除　import { getOtherUsersMeetings } from "@/lib/meeting-data"
 
 export default function HomePage() {
   const router = useRouter()
@@ -17,16 +17,36 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<any[]>([])
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!searchQuery.trim()) return
 
     setIsSearching(true)
+    setSearchResults([]) //検索結果をリセット（空にする）古い検索結果を消して、新しい結果を準備するため
 
-    // In a real app, you would call an API to search
+    try {
+      const res = await fetch("https://your-backend-api-url/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      })
+  
+      if (!res.ok) {
+        throw new Error("検索APIエラー")
+      }
+  
+      const data = await res.json()
+      setSearchResults(data.results)
+    } catch (error) {
+      console.error("RAG検索エラー:", error)
+    }
+  }
+
     // For this demo, we'll simulate search by filtering meetings from other users
-    const otherUsersMeetings = getOtherUsersMeetings()
+    //削除 const otherUsersMeetings = getOtherUsersMeetings()
 
     // Simple search implementation that checks if the query appears in title, summary, knowledge, or tags
     const results = otherUsersMeetings

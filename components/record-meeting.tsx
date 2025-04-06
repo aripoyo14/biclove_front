@@ -455,12 +455,11 @@ export default function RecordMeeting() {
   };
   // ★追加ここまで（編集内容を保存（PUT）する処理）
 
-  
   const handleUploadClick = async (e) => {
     const file = e.target.files[0];
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append("user_id", "1"); //   ★202050403 追加：FastAPI側で必須
+    formData.append("file", file);
+    formData.append("user_id", String(1)); //   ★202050403 追加：FastAPI側で必須
 
     try {
       // fetchを使って、FastAPIのエンドポイントにPOST送信する
@@ -533,13 +532,12 @@ export default function RecordMeeting() {
               will be processed to generate a summary.
             </p>
             <div>
-            <input
-          accept="audio/*"
-          id="upload-button"
-          type="file"
-          onChange={handleUploadClick}
-          
-        />
+              <input
+                accept="audio/*"
+                id="upload-button"
+                type="file"
+                onChange={handleUploadClick}
+              />
             </div>
             <Button
               size="lg"

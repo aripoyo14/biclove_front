@@ -378,7 +378,7 @@ export function isUserMeeting(meetingId: number): boolean {
 // Function to find related knowledge based on matching tags
 export function findRelatedKnowledge(
   tags: string[],
-): { id: number; title: string; knowledge: string; matchingTags: string[] }[] {
+): { id: number; title: string; knowledge: string; matchingTags: string[]; matchCount: number }[] {
   if (!tags || tags.length === 0) return []
 
   // Convert tags to lowercase for case-insensitive matching
@@ -458,5 +458,43 @@ export function extractTagsFromText(text: string): string[] {
     .sort((a, b) => b[1] - a[1]) // Sort by frequency
     .slice(0, 10) // Take top 10
     .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter
+}
+
+// Function to perform RAG search over meeting knowledge
+export function searchKnowledgeWithRAG(
+  query: string
+): { id: number; title: string; knowledge: string; relevance: number; owner: string; date: string }[] {
+  if (!query.trim()) return []
+
+  // In a real implementation, this would use an embedding model and vector similarity search
+  // For now, we'll simulate RAG by doing a more comprehensive text search
+  return meetingsData
+    .map((meeting) => {
+      // Calculate relevance based on multiple fields
+      const titleMatch = meeting.title.toLowerCase().includes(query.toLowerCase()) ? 3 : 0
+      const summaryMatch = meeting.summary.toLowerCase().includes(query.toLowerCase()) ? 2 : 0
+      const knowledgeMatch = meeting.knowledge.toLowerCase().includes(query.toLowerCase()) ? 2 : 0
+      const solutionMatch = meeting.solutionKnowledge.toLowerCase().includes(query.toLowerCase()) ? 1 : 0
+
+      // Additional relevance from knowledge titles
+      const titleMatches = meeting.knowledgeTitles.filter(title => 
+        title.toLowerCase().includes(query.toLowerCase())
+      ).length * 2
+
+      // Calculate total relevance score
+      const relevance = titleMatch + summaryMatch + knowledgeMatch + solutionMatch + titleMatches
+
+      return {
+        id: meeting.id,
+        title: meeting.title,
+        knowledge: meeting.knowledge,
+        relevance,
+        owner: meeting.owner,
+        date: meeting.date
+      }
+    })
+    .filter((item) => item.relevance > 0) // Only include relevant items
+    .sort((a, b) => b.relevance - a.relevance) // Sort by relevance
+    .slice(0, 3) // Return top 3 results
 }
 

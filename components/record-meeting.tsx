@@ -455,6 +455,68 @@ export default function RecordMeeting() {
   };
   // ★追加ここまで（編集内容を保存（PUT）する処理）
 
+  
+  const handleUploadClick = async (e) => {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append("user_id", "1"); //   ★202050403 追加：FastAPI側で必須
+
+    try {
+      // fetchを使って、FastAPIのエンドポイントにPOST送信する
+      const response = await fetch("http://localhost:8000/upload-audio", {
+        method: "POST",
+        body: formData,
+      });
+
+      // 通信がうまくいかなかった場合はエラーを出す
+      if (!response.ok) {
+        throw new Error("音声ファイルのアップロードに失敗しました");
+      }
+
+      // サーバーから返ってきたJSONデータを取得
+      const result = await response.json();
+
+      //録音完了時にmeeting_idを保存
+      setMeetingId(result.meeting_id); // ← ★ここ追加（ステートに保存）
+      setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
+      setChallengeId(result.parsed_summary.challenges[0]?.id || null);
+
+      console.log("アップロード成功:", result);
+
+      // サーバーからの結果を画面に表示するため、stateに保存
+      setMeetingSummary({
+        summary: result.parsed_summary.summary,
+        knowledge: result.parsed_summary.knowledges
+          .map((k) => k.content)
+          .join("\n"),
+        knowledgeTags: [], // ← タグが必要なら後でここを拡張
+        issues: result.parsed_summary.challenges
+          .map((c) => c.content)
+          .join("\n"),
+        challengeTags: [],
+        solutionKnowledge: "", // 今は未使用なので空でOK
+      });
+
+      // UIの状態を「完了」に変更し、要約表示などを可能にする
+      setRecordingState(RecordingState.COMPLETED);
+    } catch (error) {
+      // エラーが起きた場合の処理（ログ表示と状態リセット）
+      console.error("送信中にエラー:", error);
+      setRecordingState(RecordingState.STOPPED);
+    }
+
+    // マイクを止めるため、MediaRecorderの音声ストリームを全て停止
+    if (mediaRecorderRef.current) {
+      const tracks = mediaRecorderRef.current.stream.getTracks();
+      tracks.forEach((track) => track.stop()); // 全てのトラックを停止
+      mediaRecorderRef.current = null; // recorderを初期化
+    }
+
+    // 録音データをリセット（次回の録音に備える）
+    audioChunksRef.current = [];
+  };
+
   const renderContent = () => {
     switch (recordingState) {
       case RecordingState.IDLE:
@@ -470,6 +532,15 @@ export default function RecordMeeting() {
               Click the button below to start recording your meeting. The audio
               will be processed to generate a summary.
             </p>
+            <div>
+            <input
+          accept="audio/*"
+          id="upload-button"
+          type="file"
+          onChange={handleUploadClick}
+          
+        />
+            </div>
             <Button
               size="lg"
               onClick={startRecording}

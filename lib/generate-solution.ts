@@ -168,3 +168,29 @@ export function getRelevantReferences(meetingId: number) {
   )
 }
 
+export async function sendChallengeToSolution(challengeContent: string) {
+  try {
+    const response = await fetch(
+      // process.env.NEXT_PUBLIC_API_ENDPOINT + '/api/solution_knowledge', { // デプロイ環境用
+      'http://127.0.0.1:8000/solution_knowledge', { // ローカル環境用
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content:challengeContent,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send challenge to solution endpoint');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending challenge to solution:', error);
+    throw error;
+  }
+}
+

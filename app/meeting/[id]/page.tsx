@@ -24,6 +24,7 @@ import {
 import {
   generateSolutionProposal,
   getRelevantReferences,
+  sendChallengeToSolution,
 } from "@/lib/generate-solution";
 
 // Update interfaces to include title
@@ -55,6 +56,7 @@ export default function MeetingPage({
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
   const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({});
+  const [solutionResponse, setSolutionResponse] = useState<{ summary: string; knowledge_ids: number[] } | null>(null);
 
   useEffect(() => {
     const fetchMeeting = async () => {
@@ -134,6 +136,21 @@ export default function MeetingPage({
 
   // Check if we're viewing from the sidebar (we'll always show the content but hide Hints)
   const isViewingFromSidebar = false;
+
+  const handleGenerateSolution = async () => {
+    try {
+      // すべてのchallengeの内容を集約
+      const allChallengeContent = challengeItems
+        .map(item => item.content)
+        .join('\n\n');
+
+      // 集約した内容を送信
+      const response = await sendChallengeToSolution(allChallengeContent);
+      setSolutionResponse(response);
+    } catch (error) {
+      console.error('Error generating solution:', error);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-cream">
@@ -393,74 +410,87 @@ export default function MeetingPage({
               )}
 
               {/* Related Knowledge (formerly Hints) - Only show for owner's content */}
-              {isOwner && solutionProposal && !isViewingFromSidebar && (
+              {isOwner && !isViewingFromSidebar && (
                 <div className="bg-blue/5 border border-blue/20 rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold text-navy mb-4">
-                    Related Knowledge
-                  </h2>
-                  <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
-                    {solutionProposal}
-                  </p>
-
-                  <div className="border-t border-blue/10 pt-4 mt-6">
-                    <h3 className="text-navy font-medium flex items-center gap-2 mb-4">
-                      <LinkIcon className="h-4 w-4" />
-                      参考情報
-                    </h3>
-
-                    <div className="space-y-3">
-                      {references.map((site, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg border border-blue/10 overflow-hidden"
-                        >
-                          <div className="p-3 flex justify-between items-center">
-                            <h4 className="text-blue font-medium">
-                              {site.title}
-                            </h4>
-                            <button
-                              onClick={() => toggleReference(index)}
-                              className="flex items-center justify-center w-6 h-6 rounded-full bg-blue/10 hover:bg-blue/20 text-blue transition-colors"
-                            >
-                              {expandedRefs.includes(index) ? (
-                                <Minus size={14} />
-                              ) : (
-                                <Plus size={14} />
-                              )}
-                            </button>
-                          </div>
-
-                          {expandedRefs.includes(index) && (
-                            <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                              <p className="text-navy/70 text-sm">
-                                {site.description}
-                              </p>
-
-                              <div className="mt-3 pt-3 border-t border-blue/5">
-                                <h5 className="text-xs font-medium text-navy/60 uppercase mb-2">
-                                  Key Points
-                                </h5>
-                                <ul className="text-sm text-navy/70 space-y-1 pl-4 list-disc">
-                                  <li>
-                                    Comprehensive guide to best practices and
-                                    standards
-                                  </li>
-                                  <li>
-                                    Includes practical examples and
-                                    implementation tips
-                                  </li>
-                                  <li>
-                                    Updated with the latest industry
-                                    recommendations
-                                  </li>
-                                </ul>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-navy">
+                      Related Knowledge
+                    </h2>
+                    <button 
+                      onClick={handleGenerateSolution}
+                      className="bg-blue text-white px-4 py-2 rounded-lg hover:bg-blue/90 transition-colors"
+                    >
+                      知見生成
+                    </button>
                   </div>
+                  
+                  {solutionResponse && (
+                    <>
+                      <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
+                        {solutionResponse.summary}
+                      </p>
+
+                      <div className="border-t border-blue/10 pt-4 mt-6">
+                        <h3 className="text-navy font-medium flex items-center gap-2 mb-4">
+                          <LinkIcon className="h-4 w-4" />
+                          参考情報
+                        </h3>
+
+                        <div className="space-y-3">
+                          {references.map((site, index) => (
+                            <div
+                              key={index}
+                              className="bg-white rounded-lg border border-blue/10 overflow-hidden"
+                            >
+                              <div className="p-3 flex justify-between items-center">
+                                <h4 className="text-blue font-medium">
+                                  {site.title}
+                                </h4>
+                                <button
+                                  onClick={() => toggleReference(index)}
+                                  className="flex items-center justify-center w-6 h-6 rounded-full bg-blue/10 hover:bg-blue/20 text-blue transition-colors"
+                                >
+                                  {expandedRefs.includes(index) ? (
+                                    <Minus size={14} />
+                                  ) : (
+                                    <Plus size={14} />
+                                  )}
+                                </button>
+                              </div>
+
+                              {expandedRefs.includes(index) && (
+                                <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <p className="text-navy/70 text-sm">
+                                    {site.description}
+                                  </p>
+
+                                  <div className="mt-3 pt-3 border-t border-blue/5">
+                                    <h5 className="text-xs font-medium text-navy/60 uppercase mb-2">
+                                      Key Points
+                                    </h5>
+                                    <ul className="text-sm text-navy/70 space-y-1 pl-4 list-disc">
+                                      <li>
+                                        Comprehensive guide to best practices and
+                                        standards
+                                      </li>
+                                      <li>
+                                        Includes practical examples and
+                                        implementation tips
+                                      </li>
+                                      <li>
+                                        Updated with the latest industry
+                                        recommendations
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

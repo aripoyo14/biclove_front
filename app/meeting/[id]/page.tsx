@@ -56,7 +56,16 @@ export default function MeetingPage({
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
   const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({});
-  const [solutionResponse, setSolutionResponse] = useState<{ summary: string; knowledge_ids: number[] } | null>(null);
+  const [solutionResponse, setSolutionResponse] = useState<{ 
+    summary: string; 
+    knowledges: Array<{
+      id: number;
+      title: string;
+      content: string;
+      user_id: number;
+      user_name: string;
+    }>;
+  } | null>(null);
 
   useEffect(() => {
     const fetchMeeting = async () => {
@@ -437,14 +446,14 @@ export default function MeetingPage({
                         </h3>
 
                         <div className="space-y-3">
-                          {references.map((site, index) => (
+                          {solutionResponse?.knowledges.map((knowledge, index) => (
                             <div
                               key={index}
                               className="bg-white rounded-lg border border-blue/10 overflow-hidden"
                             >
                               <div className="p-3 flex justify-between items-center">
                                 <h4 className="text-blue font-medium">
-                                  {site.title}
+                                  {knowledge.title}
                                 </h4>
                                 <button
                                   onClick={() => toggleReference(index)}
@@ -460,28 +469,13 @@ export default function MeetingPage({
 
                               {expandedRefs.includes(index) && (
                                 <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                                  <p className="text-navy/70 text-sm">
-                                    {site.description}
+                                  <p className="text-navy/70 text-sm whitespace-pre-wrap">
+                                    {knowledge.content}
                                   </p>
-
                                   <div className="mt-3 pt-3 border-t border-blue/5">
-                                    <h5 className="text-xs font-medium text-navy/60 uppercase mb-2">
-                                      Key Points
-                                    </h5>
-                                    <ul className="text-sm text-navy/70 space-y-1 pl-4 list-disc">
-                                      <li>
-                                        Comprehensive guide to best practices and
-                                        standards
-                                      </li>
-                                      <li>
-                                        Includes practical examples and
-                                        implementation tips
-                                      </li>
-                                      <li>
-                                        Updated with the latest industry
-                                        recommendations
-                                      </li>
-                                    </ul>
+                                    <p className="text-xs text-navy/60">
+                                      Knowledge by: {knowledge.user_name}
+                                    </p>
                                   </div>
                                 </div>
                               )}

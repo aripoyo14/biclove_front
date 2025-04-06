@@ -20,6 +20,7 @@ import {
   LinkIcon,
   Calendar,
   Clock,
+  Heart,
 } from "lucide-react";
 import {
   generateSolutionProposal,
@@ -56,6 +57,7 @@ export default function MeetingPage({
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
   const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({});
+  const [likedRefs, setLikedRefs] = useState<number[]>([]);
   const [solutionResponse, setSolutionResponse] = useState<{ 
     summary: string; 
     knowledges: Array<{
@@ -472,10 +474,26 @@ export default function MeetingPage({
                                   <p className="text-navy/70 text-sm whitespace-pre-wrap">
                                     {knowledge.content}
                                   </p>
-                                  <div className="mt-3 pt-3 border-t border-blue/5">
+                                  <div className="mt-3 pt-3 border-t border-blue/5 flex justify-between items-center">
                                     <p className="text-xs text-navy/60">
                                       Knowledge by: {knowledge.user_name}
                                     </p>
+                                    <button 
+                                      className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors"
+                                      onClick={() => {
+                                        setLikedRefs(prev => 
+                                          prev.includes(index) 
+                                            ? prev.filter(i => i !== index)
+                                            : [...prev, index]
+                                        );
+                                      }}
+                                    >
+                                      <Heart 
+                                        size={14} 
+                                        fill={likedRefs.includes(index) ? "currentColor" : "none"}
+                                      />
+                                      <span className="text-xs">Thanks</span>
+                                    </button>
                                   </div>
                                 </div>
                               )}

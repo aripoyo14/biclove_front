@@ -394,7 +394,7 @@ export default function RecordMeeting() {
       return;
     }
 
-    router.push(`/meeting/${meetingId}`); // ← 実際のmeeting_idで詳細画面へ遷移
+    router.push(`/meeting/${meeting_id}`); // ← 実際のmeeting_idで詳細画面へ遷移
   };
 
   //元のfinalizeMeeting関数
@@ -426,7 +426,7 @@ export default function RecordMeeting() {
   //    router.push(`/meeting/1`); //仮遷移
   //  };
 
-  // 編集内容を保存（PUT）する処理　★ここ追加
+  // 編集内容を保存（PUT）する処理
   const saveEditedMeeting = async () => {
     if (!meetingId) {
       alert("保存できる会議IDがありません");
@@ -442,26 +442,20 @@ export default function RecordMeeting() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            //======================================================
-            title: meetingTitle, // ← 20250404追加書き換え　これで編集できる(当初は”編集後のタイトル（仮）”となっていた)
-            //======================================================
+            title: meetingTitle,
             summary: meetingSummary.summary,
             knowledges: [
               {
-                id: knowledgeId, // ← ここを state から渡す
-                //==================================================
-                title: meetingSummary.knowledgeTitle, // ← 20250404追加書き換え
-                //==================================================
+                id: knowledgeId,
+                title: meetingSummary.knowledgeTitle,
                 content: meetingSummary.knowledge,
                 tags: meetingSummary.knowledgeTags,
               },
             ],
             challenges: [
               {
-                id: challengeId, // ← ここも同様に
-                //=================================================
-                title: meetingSummary.challengeTitle, // ← 20250404追加書き換え
-                //=================================================
+                id: challengeId,
+                title: meetingSummary.challengeTitle,
                 content: meetingSummary.issues,
                 tags: meetingSummary.challengeTags,
               },
@@ -474,8 +468,23 @@ export default function RecordMeeting() {
         throw new Error("更新に失敗しました");
       }
 
+      const result = await response.json();
+      console.log("保存後のサーバーからの応答:", result);
+
+      if (result.meeting_id) {
+        setMeetingId(result.meeting_id); // サーバーからの meeting_id を保存
+        console.log("取得した meetingId:", meetingId);
+      } else {
+        console.error("サーバーからの meeting_id が見つかりません");
+      }
+
       alert("編集内容を保存しました");
-      router.push("/home");
+
+      // URL を確認するためのログ
+      console.log("次に遷移する URL:", `/meeting/${meetingId}`);
+
+      // URL遷移の処理
+      router.push(`/meeting/${meetingId}`);
       setTimeout(() => {
         router.refresh();
       }, 300);
@@ -483,7 +492,6 @@ export default function RecordMeeting() {
       console.error("PUTリクエストエラー:", error);
     }
   };
-  // ★追加ここまで（編集内容を保存（PUT）する処理）
 
   const handleUploadClick = async (e) => {
     const file = e.target.files[0];
@@ -519,10 +527,16 @@ export default function RecordMeeting() {
         knowledge: result.parsed_summary.knowledges
           .map((k) => k.content)
           .join("\n"),
+        knowledgeTitle:
+          result.parsed_summary.knowledges[0]?.title ||
+          "デフォルト知見タイトル", // ← 追加
         knowledgeTags: [], // ← タグが必要なら後でここを拡張
         issues: result.parsed_summary.challenges
           .map((c) => c.content)
           .join("\n"),
+        challengeTitle:
+          result.parsed_summary.challenges[0]?.title ||
+          "デフォルト課題タイトル", // ← 追加
         challengeTags: [],
         solutionKnowledge: "", // 今は未使用なので空でOK
       });

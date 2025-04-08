@@ -255,10 +255,13 @@ export default function RecordMeeting() {
 
     try {
       // fetchを使って、FastAPIのエンドポイントにPOST送信する
-      const response = await fetch("http://localhost:8000/upload-audio", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       // 通信がうまくいかなかった場合はエラーを出す
       if (!response.ok) {
@@ -394,7 +397,7 @@ export default function RecordMeeting() {
       return;
     }
 
-    router.push(`/meeting/${meeting_id}`); // ← 実際のmeeting_idで詳細画面へ遷移
+    router.push(`/meeting/${meetingId}`); // ← 実際のmeeting_idで詳細画面へ遷移
   };
 
   //元のfinalizeMeeting関数
@@ -435,7 +438,7 @@ export default function RecordMeeting() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/update-meeting/${meetingId}`,
+        `${process.env.NEXT_PUBLIC_API_ENDPOINT}/update-meeting/${meetingId}`,
         {
           method: "PUT",
           headers: {
@@ -501,10 +504,13 @@ export default function RecordMeeting() {
 
     try {
       // fetchを使って、FastAPIのエンドポイントにPOST送信する
-      const response = await fetch("http://localhost:8000/upload-audio", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       // 通信がうまくいかなかった場合はエラーを出す
       if (!response.ok) {

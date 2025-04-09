@@ -1,10 +1,6 @@
-// 会議録音から要約・知見・課題の表示と編集ができるWebアプリ
-// React + Next.jsで構成。録音、サマリー生成、タグ付け、編集保存機能付き
 "use client";
 
-import type React from "react";
-
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Mic,
   Pause,
@@ -14,20 +10,17 @@ import {
   Edit,
   Check,
   X,
-  Tag,
+  BookOpen,
+  Lightbulb,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import {
-  extractTagsFromText,
-  getAllMeetings,
-  currentUser,
-} from "@/lib/meeting-data";
 
-//録音の状態を管理するための enum 例えば、録音中は RECORDING、録音停止後は STOPPED など、状態を定義
+// 録音状態を管理するための enum
 enum RecordingState {
   IDLE = 0,
   REQUESTING_PERMISSION = 1,
@@ -38,57 +31,48 @@ enum RecordingState {
   COMPLETED = 6,
 }
 
-//20250404追加（knowledgeTitle challengeTitle)======================================
-// 会議の要約データ構造を定義
+// 個別の知見・課題の型定義
+interface KnowledgeItem {
+  id: number;
+  title: string;
+  content: string;
+  tags: string[];
+}
+
+interface ChallengeItem {
+  id: number;
+  title: string;
+  content: string;
+  tags: string[];
+}
+
+// 会議全体のデータ構造
 interface MeetingSummary {
   summary: string;
-  knowledge: string;
-  knowledgeTitle: string; // ← 20250404追加
-  knowledgeTags: string[];
-  issues: string;
-  challengeTitle: string; // ← 20250404追加
-  challengeTags: string[]; // Changed from issueTags
+  knowledges: KnowledgeItem[];
+  challenges: ChallengeItem[];
   solutionKnowledge: string;
 }
-//=================================================================================
 
 export default function RecordMeeting() {
   const router = useRouter();
 
-  // 会議ID（新規作成後にバックエンドから受け取るID）★ここを追加！
-  const [meetingId, setMeetingId] = useState<number | null>(null); // ★ここ追加
-
-  // 録音状態（録音中／停止中など）を管理するステート
+  // 各 state の初期化
+  const [meetingId, setMeetingId] = useState<number | null>(null);
+  const [meetingTitle, setMeetingTitle] = useState<string>("");
+  const [meetingSummary, setMeetingSummary] = useState<MeetingSummary>({
+    summary: "",
+    knowledges: [],
+    challenges: [],
+    solutionKnowledge: "",
+  });
   const [recordingState, setRecordingState] = useState<RecordingState>(
     RecordingState.IDLE
   );
-
-  // 録音時間をカウントするステート
   const [recordingTime, setRecordingTime] = useState(0);
-
-  // 編集モードかどうか
   const [isEditing, setIsEditing] = useState(false);
 
-  // 20250404追加（knowledgeTitle　challengeTitle）==========================================================
-  // 会議の内容（サマリー、知見、悩みなど）を保持するステート
-  const [meetingSummary, setMeetingSummary] = useState<MeetingSummary>({
-    summary: "",
-    knowledge: "",
-    knowledgeTitle: "", // ← 20250404追加
-    knowledgeTags: [],
-    issues: "",
-    challengeTitle: "", // ← 20250404追加
-    challengeTags: [], // Changed from issueTags
-    solutionKnowledge: "",
-  });
-  //========================================================================================================
-
-  //==============================================
-  //★★20250404追加 🆕 会議タイトルを保存するためのステート
-  const [meetingTitle, setMeetingTitle] = useState<string>("");
-  //==============================================
-
-  // 会議IDと各項目のIDを保存する
+  // 保存用ID（update 時用）※バックエンドで設定されたIDを保持
   const [knowledgeId, setKnowledgeId] = useState<number | null>(null);
   const [challengeId, setChallengeId] = useState<number | null>(null);
 
@@ -96,14 +80,11 @@ export default function RecordMeeting() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const knowledgeTagInputRef = useRef<HTMLInputElement>(null);
-  // Rename issueTagInputRef to challengeTagInputRef
   const challengeTagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
@@ -115,10 +96,9 @@ export default function RecordMeeting() {
       .padStart(2, "0")}`;
   };
 
-  // 録音開始処理
+  // 録音開始
   const startRecording = async () => {
     setRecordingState(RecordingState.REQUESTING_PERMISSION);
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -133,8 +113,6 @@ export default function RecordMeeting() {
 
       mediaRecorder.start();
       setRecordingState(RecordingState.RECORDING);
-
-      // Start timer
       setRecordingTime(0);
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
@@ -145,427 +123,229 @@ export default function RecordMeeting() {
     }
   };
 
-  // 録音一時停止・再開
+  // 一時停止／再開
   const pauseRecording = () => {
-    if (
-      mediaRecorderRef.current &&
-      recordingState === RecordingState.RECORDING
-    ) {
+    if (mediaRecorderRef.current && recordingState === RecordingState.RECORDING) {
       mediaRecorderRef.current.pause();
       setRecordingState(RecordingState.PAUSED);
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     } else if (
       mediaRecorderRef.current &&
       recordingState === RecordingState.PAUSED
     ) {
       mediaRecorderRef.current.resume();
       setRecordingState(RecordingState.RECORDING);
-
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
     }
   };
 
-  // ★（新コード）録音停止処理
-  //MediaRecorder.stop() は非同期処理。onstop は録音データが完全に受信されたあとに呼ばれるので、録音データが空ではない状態で saveRecording() が動く
+  // 録音停止
   const stopRecording = () => {
     if (mediaRecorderRef.current) {
       const recorder = mediaRecorderRef.current;
-
       recorder.onstop = () => {
-        console.log("🎤 録音が完全に停止しました");
-        console.log("🧩 チャンク数：", audioChunksRef.current.length);
-        saveRecording(); // ✅ ここで呼び出す！
+        console.log("Recording fully stopped");
+        saveRecording();
       };
-
-      recorder.stop(); // 録音停止（ここでは saveRecording を呼ばない）
-
+      recorder.stop();
       setRecordingState(RecordingState.STOPPED);
-
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
-  // (当初のコード）録音停止処理
-  //  const stopRecording = () => {
-  //    if (mediaRecorderRef.current) {
-  //      mediaRecorderRef.current.stop();
-  //      setRecordingState(RecordingState.STOPPED);
-
-  //      if (timerRef.current) {
-  //        clearInterval(timerRef.current);
-  //      }
-  //    }
-  //  };
-
-  // (当初のコード）録音データをサーバに送信する
-  //  const saveRecording = () => {
-  //   setRecordingState(RecordingState.PROCESSING);
-
-  // Simulate AI processing
-  //   setTimeout(() => {
-  // In a real app, you would send the audio to an API for transcription and summarization
-  //   const knowledge =
-  //     "- Enhanced reporting dashboard is a high priority for enterprise customers\n- Mobile app improvements are needed for the next release\n- Integration with third-party tools is planned\n- API improvements should be included in the roadmap";
-
-  //     const issues =
-  //       "- Timeline for API improvements needs to be determined\n- Resources for the reporting dashboard need to be allocated\n- Testing strategy for third-party integrations needs to be developed";
-
-  // Auto-generate tags from the knowledge and issues text
-  //      const knowledgeTags = extractTagsFromText(knowledge);
-  //  /   const challengeTags = extractTagsFromText(issues);
-
-  //      setMeetingSummary({
-  //        summary:
-  //          "This meeting focused on the Q3 product roadmap. The team discussed prioritizing features for the next release, including an enhanced reporting dashboard, mobile app improvements, and integration with third-party tools. The team also discussed API improvements that were mentioned in a previous meeting.",
-  //        knowledge,
-  //        knowledgeTags,
-  //        issues,
-  //        challengeTags,
-  //        solutionKnowledge:
-  //          "- Previous API improvement projects typically took 4-6 weeks\n- The design team has dashboard templates that can accelerate development\n- We have documentation from previous third-party integrations\n- The QA team has developed a standard testing framework for integrations",
-  //      });
-
-  //      setRecordingState(RecordingState.COMPLETED);
-
-  // ★（新コード20250401）録音データをサーバー（FastAPI）に送信して、要約などを受け取る関数
+  // 録音データ送信と結果受信
   const saveRecording = async () => {
-    // UIに「現在処理中です」と表示させるため、状態を更新
     setRecordingState(RecordingState.PROCESSING);
-
-    // 録音データが空の場合、エラーメッセージを出して処理を中断
     if (audioChunksRef.current.length === 0) {
-      console.error("録音データがありません");
+      console.error("No audio data available");
       return;
     }
 
-    // 録音中に集めた音声のかけら（Blob）を1つの音声ファイルにまとめる
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-
-    // FormData（送信用の封筒）を作り、その中に音声ファイルを入れる
     const formData = new FormData();
-    formData.append("file", audioBlob, "meeting.webm"); // "file" という名前で送る
-    formData.append("user_id", "1"); //   ★202050403 追加：FastAPI側で必須
+    formData.append("file", audioBlob, "meeting.webm");
+    formData.append("user_id", "1");
 
     try {
-      // fetchを使って、FastAPIのエンドポイントにPOST送信する
       const response = await fetch(
         process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
-        {
-          method: "POST",
-          body: formData,
-        }
+        { method: "POST", body: formData }
       );
+      if (!response.ok) throw new Error("Audio file upload failed");
 
-      // 通信がうまくいかなかった場合はエラーを出す
-      if (!response.ok) {
-        throw new Error("音声ファイルのアップロードに失敗しました");
-      }
-
-      // サーバーから返ってきたJSONデータを取得
+      // レスポンス受信後の処理例（修正箇所）
       const result = await response.json();
 
-      //==============================================
-      // ★★20250404追加　🆕 タイトルをステートに保存！
-      setMeetingTitle(result.title);
-      //==============================================
+      // meeting_id および meeting.title（不要な引用符の除去付き）をセット
+      setMeetingId(result.meeting_id);
+      setMeetingTitle(result.meeting.title ? result.meeting.title.replace(/^"|"$/g, "") : "");
 
-      //録音完了時にmeeting_idを保存
-      setMeetingId(result.meeting_id); // ← ★ここ追加（ステートに保存）
-      setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
-      setChallengeId(result.parsed_summary.challenges[0]?.id || null);
+      // knowledges / challenges はトップレベルに存在するため、それぞれから id を取得
+      setKnowledgeId(result.knowledges[0]?.id || null);
+      setChallengeId(result.challenges[0]?.id || null);
 
-      console.log("アップロード成功:", result);
+      console.log("Upload successful:", result);
 
-      //20250404追加（knowledgeTitle　challengeTitle)=============================================
-      // サーバーからの結果を画面に表示するため、stateに保存
+      // meetingSummary の各項目をセット（title に関しては両端の引用符を除去）
       setMeetingSummary({
-        summary: result.parsed_summary.summary,
-        knowledge: result.parsed_summary.knowledges
-          .map((k) => k.content)
-          .join("\n"),
-        knowledgeTitle:
-          result.parsed_summary.knowledges[0]?.title || "自動知見タイトル", // ← 20250404追加
-        knowledgeTags: [], // ← タグが必要なら後でここを拡張
-        issues: result.parsed_summary.challenges
-          .map((c) => c.content)
-          .join("\n"),
-        challengeTitle:
-          result.parsed_summary.challenges[0]?.title || "自動課題タイトル", // ← 20250404追加
-        challengeTags: [],
-        solutionKnowledge: "", // 今は未使用なので空でOK
+        summary: result.meeting.summary,
+        knowledges: result.knowledges.map((k: any) => ({
+          id: k.id,
+          title: k.title ? k.title.replace(/^"|"$/g, "") : "デフォルト知見タイトル",
+          content: k.content,
+          tags: k.tags || [],
+        })),
+        challenges: result.challenges.map((c: any) => ({
+          id: c.id,
+          title: c.title ? c.title.replace(/^"|"$/g, "") : "デフォルト課題タイトル",
+          content: c.content,
+          tags: c.tags || [],
+        })),
+        solutionKnowledge: "",
       });
-      //===========================================================================================
 
-      // UIの状態を「完了」に変更し、要約表示などを可能にする
-      setRecordingState(RecordingState.COMPLETED);
+setRecordingState(RecordingState.COMPLETED);
     } catch (error) {
-      // エラーが起きた場合の処理（ログ表示と状態リセット）
-      console.error("送信中にエラー:", error);
+      console.error("Error during upload:", error);
       setRecordingState(RecordingState.STOPPED);
     }
 
-    // マイクを止めるため、MediaRecorderの音声ストリームを全て停止
     if (mediaRecorderRef.current) {
       const tracks = mediaRecorderRef.current.stream.getTracks();
-      tracks.forEach((track) => track.stop()); // 全てのトラックを停止
-      mediaRecorderRef.current = null; // recorderを初期化
+      tracks.forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
     }
-
-    // 録音データをリセット（次回の録音に備える）
     audioChunksRef.current = [];
   };
 
-  //当初のコード（20250401) マイクを止めるため、MediaRecorderの音声ストリームをすべて停止
-  //      if (mediaRecorderRef.current) {
-  //        const tracks = mediaRecorderRef.current.stream.getTracks();
-  //        tracks.forEach((track) => track.stop());
-  //        mediaRecorderRef.current = null;
-  //     }
-  //      audioChunksRef.current = [];
-  //    }, 2000);
-  //  };
-
-  const handleSummaryChange = (
-    field: keyof MeetingSummary,
-    value: string | string[]
-  ) => {
+  // 編集用：Summary は単一項目なのでそのまま
+  const handleSummaryChange = (field: keyof MeetingSummary, value: string) => {
     setMeetingSummary((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleKnowledgeTagInput = (
-    e: React.KeyboardEvent<HTMLInputElement>
+  // 編集用：特定の知見の更新関数
+  const updateKnowledgeItem = (
+    index: number,
+    field: keyof KnowledgeItem,
+    value: string
   ) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim() !== "") {
-      e.preventDefault();
-      const newTag = e.currentTarget.value.trim();
-      if (!meetingSummary.knowledgeTags.includes(newTag)) {
-        handleSummaryChange("knowledgeTags", [
-          ...meetingSummary.knowledgeTags,
-          newTag,
-        ]);
-      }
-      e.currentTarget.value = "";
-    }
+    setMeetingSummary((prev) => {
+      const newKnowledges = [...prev.knowledges];
+      newKnowledges[index] = { ...newKnowledges[index], [field]: value };
+      return { ...prev, knowledges: newKnowledges };
+    });
   };
 
-  // Rename handleIssueTagInput to handleChallengeTagInput
-  const handleChallengeTagInput = (
-    e: React.KeyboardEvent<HTMLInputElement>
+  // 編集用：特定の課題の更新関数
+  const updateChallengeItem = (
+    index: number,
+    field: keyof ChallengeItem,
+    value: string
   ) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim() !== "") {
-      e.preventDefault();
-      const newTag = e.currentTarget.value.trim();
-      if (!meetingSummary.challengeTags.includes(newTag)) {
-        handleSummaryChange("challengeTags", [
-          ...meetingSummary.challengeTags,
-          newTag,
-        ]);
-      }
-      e.currentTarget.value = "";
-    }
+    setMeetingSummary((prev) => {
+      const newChallenges = [...prev.challenges];
+      newChallenges[index] = { ...newChallenges[index], [field]: value };
+      return { ...prev, challenges: newChallenges };
+    });
   };
 
-  // removeIssueTag の名前を removeChallengeTag に変更します
-  const removeChallengeTag = (tagToRemove: string) => {
-    handleSummaryChange(
-      "challengeTags",
-      meetingSummary.challengeTags.filter((tag) => tag !== tagToRemove)
-    );
-  };
-
-  const removeKnowledgeTag = (tagToRemove: string) => {
-    handleSummaryChange(
-      "knowledgeTags",
-      meetingSummary.knowledgeTags.filter((tag) => tag !== tagToRemove)
-    );
-  };
-
-  //finalizeMeeting関数の書き換え　★追加
-  const finalizeMeeting = () => {
-    if (!meetingId) {
-      alert("保存できる会議が見つかりません");
-      return;
-    }
-
-    router.push(`/meeting/${meetingId}`); // ← 実際のmeeting_idで詳細画面へ遷移
-  };
-
-  //元のfinalizeMeeting関数
-  //  const finalizeMeeting = () => {
-  // 実際のアプリでは, 会議データをバックエンドに保存して
-  // 新しく作成された会議のIDを取得する
-
-  // 現在の会議を取得して、最も高い ID を見つけます
-  //    const allMeetings = getAllMeetings();
-  //    const newMeetingId = Math.max(...allMeetings.map((m) => m.id)) + 1;
-
-  // 新しい会議オブジェクトを作成する
-  //    const newMeeting = {
-  //      id: newMeetingId,
-  //      title: "Product Roadmap Discussion", // 仮タイトル　これは、実際のアプリでのユーザー入力から取得されます
-  //      date: "Today",
-  //      participants: ["Sarah Johnson", "Michael Chen", "David Kim"],
-  //      owner: currentUser,
-  //      summary: meetingSummary.summary,
-  //     knowledge: meetingSummary.knowledge,
-  //      knowledgeTags: meetingSummary.knowledgeTags,
-  //      issues: meetingSummary.issues,
-  //      challengeTags: meetingSummary.challengeTags,
-  //      solutionKnowledge: meetingSummary.solutionKnowledge,
-  //      messages: [],
-  //      isDocument: false,
-  //    };
-
-  //    router.push(`/meeting/1`); //仮遷移
-  //  };
-
-  // 編集内容を保存（PUT）する処理
+  // 編集内容の保存（PUTリクエスト）
   const saveEditedMeeting = async () => {
     if (!meetingId) {
       alert("保存できる会議IDがありません");
       return;
     }
-
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_ENDPOINT}/update-meeting/${meetingId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
+          // knowledges/challenges をそれぞれ配列として送信
           body: JSON.stringify({
             title: meetingTitle,
             summary: meetingSummary.summary,
-            knowledges: [
-              {
-                id: knowledgeId,
-                title: meetingSummary.knowledgeTitle,
-                content: meetingSummary.knowledge,
-                tags: meetingSummary.knowledgeTags,
-              },
-            ],
-            challenges: [
-              {
-                id: challengeId,
-                title: meetingSummary.challengeTitle,
-                content: meetingSummary.issues,
-                tags: meetingSummary.challengeTags,
-              },
-            ],
+            knowledges: meetingSummary.knowledges,
+            challenges: meetingSummary.challenges,
           }),
         }
       );
-
-      if (!response.ok) {
-        throw new Error("更新に失敗しました");
-      }
-
+      if (!response.ok) throw new Error("Update failed");
       const result = await response.json();
-      console.log("保存後のサーバーからの応答:", result);
-
+      console.log("Update response:", result);
       if (result.meeting_id) {
-        setMeetingId(result.meeting_id); // サーバーからの meeting_id を保存
-        console.log("取得した meetingId:", meetingId);
+        setMeetingId(result.meeting_id);
       } else {
-        console.error("サーバーからの meeting_id が見つかりません");
+        console.error("No meeting_id returned from server");
       }
-
       alert("編集内容を保存しました");
-
-      // URL を確認するためのログ
-      console.log("次に遷移する URL:", `/meeting/${meetingId}`);
-
-      // URL遷移の処理
       router.push(`/meeting/${meetingId}`);
-      setTimeout(() => {
-        router.refresh();
-      }, 300);
+      setTimeout(() => router.refresh(), 300);
     } catch (error) {
-      console.error("PUTリクエストエラー:", error);
+      console.error("PUT request error:", error);
     }
   };
 
-  const handleUploadClick = async (e) => {
-    const file = e.target.files[0];
+  const handleUploadClick = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("user_id", String(1)); //   ★202050403 追加：FastAPI側で必須
+    formData.append("user_id", "1");
 
     try {
-      // fetchを使って、FastAPIのエンドポイントにPOST送信する
       const response = await fetch(
         process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
-        {
-          method: "POST",
-          body: formData,
-        }
+        { method: "POST", body: formData }
       );
-
-      // 通信がうまくいかなかった場合はエラーを出す
-      if (!response.ok) {
-        throw new Error("音声ファイルのアップロードに失敗しました");
-      }
-
-      // サーバーから返ってきたJSONデータを取得
+      if (!response.ok)
+        throw new Error("Audio file upload failed");
       const result = await response.json();
 
-      //録音完了時にmeeting_idを保存
-      setMeetingId(result.meeting_id); // ← ★ここ追加（ステートに保存）
+      setMeetingId(result.meeting_id);
       setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
       setChallengeId(result.parsed_summary.challenges[0]?.id || null);
+      console.log("Upload successful:", result);
 
-      console.log("アップロード成功:", result);
-
-      // サーバーからの結果を画面に表示するため、stateに保存
       setMeetingSummary({
         summary: result.parsed_summary.summary,
-        knowledge: result.parsed_summary.knowledges
-          .map((k) => k.content)
-          .join("\n"),
-        knowledgeTitle:
-          result.parsed_summary.knowledges[0]?.title ||
-          "デフォルト知見タイトル", // ← 追加
-        knowledgeTags: [], // ← タグが必要なら後でここを拡張
-        issues: result.parsed_summary.challenges
-          .map((c) => c.content)
-          .join("\n"),
-        challengeTitle:
-          result.parsed_summary.challenges[0]?.title ||
-          "デフォルト課題タイトル", // ← 追加
-        challengeTags: [],
-        solutionKnowledge: "", // 今は未使用なので空でOK
+        knowledges: result.parsed_summary.knowledges.map((k: any) => ({
+          id: k.id,
+          // title が存在する場合、両端の引用符 " を除去する処理を追加
+          title: k.title ? k.title.replace(/^"|"$/g, "") : "デフォルト知見タイトル",
+          content: k.content,
+          tags: k.tags || [],
+        })),
+        challenges: result.parsed_summary.challenges.map((c: any) => ({
+          id: c.id,
+          title: c.title ? c.title.replace(/^"|"$/g, "") : "デフォルト課題タイトル",
+          content: c.content,
+          tags: c.tags || [],
+        })),
+        solutionKnowledge: "",
       });
-
-      // UIの状態を「完了」に変更し、要約表示などを可能にする
       setRecordingState(RecordingState.COMPLETED);
     } catch (error) {
-      // エラーが起きた場合の処理（ログ表示と状態リセット）
-      console.error("送信中にエラー:", error);
+      console.error("Error during file upload:", error);
       setRecordingState(RecordingState.STOPPED);
     }
 
-    // マイクを止めるため、MediaRecorderの音声ストリームを全て停止
     if (mediaRecorderRef.current) {
       const tracks = mediaRecorderRef.current.stream.getTracks();
-      tracks.forEach((track) => track.stop()); // 全てのトラックを停止
-      mediaRecorderRef.current = null; // recorderを初期化
+      tracks.forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
     }
-
-    // 録音データをリセット（次回の録音に備える）
     audioChunksRef.current = [];
   };
 
+  // レンダリング：録音状態に応じた UI
   const renderContent = () => {
     switch (recordingState) {
       case RecordingState.IDLE:
@@ -574,9 +354,7 @@ export default function RecordMeeting() {
             <div className="w-24 h-24 rounded-full bg-blue/10 flex items-center justify-center">
               <Mic size={48} className="text-blue" />
             </div>
-            <h2 className="text-2xl font-semibold text-navy">
-              Start Recording
-            </h2>
+            <h2 className="text-2xl font-semibold text-navy">Start Recording</h2>
             <p className="text-navy/70 text-center max-w-md">
               Click the button below to start recording your meeting. The audio
               will be processed to generate a summary.
@@ -673,12 +451,9 @@ export default function RecordMeeting() {
             <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center">
               <Check size={48} className="text-white" />
             </div>
-            <h2 className="text-2xl font-semibold text-navy">
-              Recording Complete
-            </h2>
+            <h2 className="text-2xl font-semibold text-navy">Recording Complete</h2>
             <p className="text-navy/70 text-center max-w-md">
-              Your recording is ready to be processed. Click the button below to
-              generate a summary.
+              Your recording is ready to be processed. Click the button below to generate a summary.
             </p>
             <div className="flex gap-4">
               <Button
@@ -707,9 +482,7 @@ export default function RecordMeeting() {
             <div className="w-24 h-24 rounded-full bg-blue/10 flex items-center justify-center">
               <div className="w-12 h-12 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-semibold text-navy">
-              Processing Recording
-            </h2>
+            <h2 className="text-2xl font-semibold text-navy">Processing Recording</h2>
             <p className="text-navy/70 text-center max-w-md">
               Your recording is being processed. This may take a few moments.
             </p>
@@ -718,19 +491,13 @@ export default function RecordMeeting() {
 
       case RecordingState.COMPLETED:
         return (
-          <div className="space-y-6 py-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-navy">
-                Meeting Record
-              </h2>
+          <div className="space-y-8 py-8">
+            <header className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold text-navy">Meeting Record</h2>
               <Button
                 variant={isEditing ? "default" : "outline"}
                 onClick={() => setIsEditing(!isEditing)}
-                className={`gap-2 ${
-                  isEditing
-                    ? "bg-blue hover:bg-blue/90"
-                    : "border-blue text-blue hover:bg-blue/10"
-                }`}
+                className="gap-2"
               >
                 {isEditing ? (
                   <>
@@ -744,14 +511,16 @@ export default function RecordMeeting() {
                   </>
                 )}
               </Button>
-            </div>
+            </header>
 
-            <div className="space-y-6">
-              <Card className="bg-cream border-blue/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-navy text-lg">Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Summary Card */}
+            <div className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="bg-blue/10 p-2 rounded-full">
+                  <BookOpen className="text-blue h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-navy mb-3">Summary</h2>
                   {isEditing ? (
                     <Textarea
                       value={meetingSummary.summary}
@@ -761,134 +530,106 @@ export default function RecordMeeting() {
                       className="min-h-[120px] bg-white border-blue/20"
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-navy/80">
+                    <p className="text-navy/80 leading-relaxed whitespace-pre-wrap">
                       {meetingSummary.summary}
                     </p>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+            </div>
 
-              <Card className="bg-cream border-blue/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-navy text-lg flex items-center justify-between">
-                    <span>Knowledge</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isEditing ? (
-                    <Textarea
-                      value={meetingSummary.knowledge}
-                      onChange={(e) =>
-                        handleSummaryChange("knowledge", e.target.value)
-                      }
-                      className="min-h-[120px] bg-white border-blue/20"
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap text-navy/80">
-                      {meetingSummary.knowledge}
-                    </p>
-                  )}
-
-                  {/* Knowledge Tags */}
-                  <div className="pt-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag size={16} className="text-blue" />
-                      <span className="text-sm font-medium text-navy">
-                        Tags
-                      </span>
+            {/* Knowledge Card */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-navy">Knowledge</h2>
+              {meetingSummary.knowledges.map((item, index) => (
+                <div key={item.id} className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-yellow/10 p-2 rounded-full">
+                      <Lightbulb className="text-yellow h-5 w-5" />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {meetingSummary.knowledgeTags.map((tag, index) => (
-                        <div
-                          key={index}
-                          className="bg-blue/10 text-navy px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                        >
-                          {tag}
-                          {isEditing && (
-                            <button
-                              onClick={() => removeKnowledgeTag(tag)}
-                              className="w-4 h-4 rounded-full bg-blue/20 flex items-center justify-center hover:bg-blue/30"
-                            >
-                              <X size={10} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      {isEditing && (
-                        <Input
-                          ref={knowledgeTagInputRef}
-                          placeholder="タグを追加してEnterを押す"
-                          className="w-48 h-8 bg-white border-blue/20"
-                          onKeyDown={handleKnowledgeTagInput}
-                        />
+                    <div className="flex-1">
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={item.title}
+                            onChange={(e) =>
+                              updateKnowledgeItem(index, "title", e.target.value)
+                            }
+                            className="mb-2"
+                          />
+                          <Textarea
+                            value={item.content}
+                            onChange={(e) =>
+                              updateKnowledgeItem(index, "content", e.target.value)
+                            }
+                            className="min-h-[100px] bg-white border-blue/20"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-lg font-medium text-navy mb-3">
+                            {item.title}
+                          </h3>
+                          <p className="text-navy/80 leading-relaxed whitespace-pre-wrap">
+                            {item.content}
+                          </p>
+                        </>
                       )}
+                      {/* タグ表示（必要なら） */}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ))}
+            </div>
 
-              <Card className="bg-cream border-blue/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-navy text-lg">Challenge</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isEditing ? (
-                    <Textarea
-                      value={meetingSummary.issues}
-                      onChange={(e) =>
-                        handleSummaryChange("issues", e.target.value)
-                      }
-                      className="min-h-[120px] bg-white border-blue/20"
-                    />
-                  ) : (
-                    <p className="whitespace-pre-wrap text-navy/80">
-                      {meetingSummary.issues}
-                    </p>
-                  )}
-
-                  {/* Challenge Tags */}
-                  <div className="pt-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag size={16} className="text-blue" />
-                      <span className="text-sm font-medium text-navy">
-                        Tags
-                      </span>
+            {/* Challenge Card */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-navy">Challenge</h2>
+              {meetingSummary.challenges.map((item, index) => (
+                <div key={item.id} className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-red-100 p-2 rounded-full">
+                      <AlertTriangle className="text-red-500 h-5 w-5" />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {meetingSummary.challengeTags.map((tag, index) => (
-                        <div
-                          key={index}
-                          className="bg-yellow/20 text-navy px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                        >
-                          {tag}
-                          {isEditing && (
-                            <button
-                              onClick={() => removeChallengeTag(tag)}
-                              className="w-4 h-4 rounded-full bg-yellow/30 flex items-center justify-center hover:bg-yellow/40"
-                            >
-                              <X size={10} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      {isEditing && (
-                        <Input
-                          ref={challengeTagInputRef}
-                          placeholder="タグを追加してEnterを押す"
-                          className="w-48 h-8 bg-white border-blue/20"
-                          onKeyDown={handleChallengeTagInput}
-                        />
+                    <div className="flex-1">
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={item.title}
+                            onChange={(e) =>
+                              updateChallengeItem(index, "title", e.target.value)
+                            }
+                            className="mb-2"
+                          />
+                          <Textarea
+                            value={item.content}
+                            onChange={(e) =>
+                              updateChallengeItem(index, "content", e.target.value)
+                            }
+                            className="min-h-[100px] bg-white border-blue/20"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-lg font-medium text-navy mb-3">
+                            {item.title}
+                          </h3>
+                          <p className="text-navy/80 leading-relaxed whitespace-pre-wrap">
+                            {item.content}
+                          </p>
+                        </>
                       )}
+                      {/* タグ表示（必要なら） */}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ))}
             </div>
 
             <div className="flex justify-end">
               <Button
                 size="lg"
-                onClick={saveEditedMeeting} // finalizeMeetingからsaveEditedMeetingに変更！！
+                onClick={saveEditedMeeting}
                 className="gap-2 bg-blue hover:bg-blue/90"
               >
                 <Save size={18} />

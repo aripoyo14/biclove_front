@@ -1,15 +1,23 @@
 "use client";
 
-import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { getUserMeetings } from "@/lib/meeting-data";
+import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { getLatestMeetings, type Meeting } from "@/lib/meeting-data"
+import { useEffect, useState } from "react"
 
 export default function SidebarNav({ activeId }: { activeId?: number }) {
-  const router = useRouter();
-  // Only get the current user's meetings for the sidebar
-  const userMeetings = getUserMeetings();
+  const router = useRouter()
+  const [userMeetings, setUserMeetings] = useState<Meeting[]>([])
+
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      const meetings = await getLatestMeetings()
+      setUserMeetings(meetings)
+    }
+    fetchMeetings()
+  }, [])
 
   // Mock total thanks count - in a real app, this would come from your backend
   const totalThanks = 42;
@@ -66,13 +74,16 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
             マイナレッジ
           </h3>
           {Object.entries(
-            userMeetings.reduce((acc, meeting) => {
-              if (!acc[meeting.date]) {
-                acc[meeting.date] = [];
-              }
-              acc[meeting.date].push(meeting);
-              return acc;
-            }, {} as Record<string, typeof userMeetings>)
+            userMeetings.reduce(
+              (acc: Record<string, Meeting[]>, meeting: Meeting) => {
+                if (!acc[meeting.date]) {
+                  acc[meeting.date] = []
+                }
+                acc[meeting.date].push(meeting)
+                return acc
+              },
+              {} as Record<string, typeof userMeetings>,
+            ),
           ).map(([date, meetings]) => (
             <div key={date} className="mb-4">
               <h3 className="text-xs font-medium text-cream/70 px-3 py-2">

@@ -1,13 +1,14 @@
 "use client";
 
 import { use } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import SidebarNav from "@/components/sidebar-nav";
 import {
-  getMeetingData,
+  getLatestMeetings,
   isUserMeeting,
   findRelatedKnowledge,
+  Meeting,
 } from "@/lib/meeting-data";
 import {
   BookOpen,
@@ -19,10 +20,12 @@ import {
   LinkIcon,
   Calendar,
   Clock,
+  Heart,
 } from "lucide-react";
 import {
   generateSolutionProposal,
   getRelevantReferences,
+  sendChallengeToSolution,
 } from "@/lib/generate-solution";
 
 // Update interfaces to include title
@@ -51,26 +54,58 @@ export default function MeetingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
+  const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({});
+  const [likedRefs, setLikedRefs] = useState<number[]>([]);
+  const [solutionResponse, setSolutionResponse] = useState<{ 
+    summary: string; 
+    knowledges: Array<{
+      id: number;
+      title: string;
+      content: string;
+      user_id: number;
+      user_name: string;
+    }>;
+  } | null>(null);
 
-  const [expandedRefs, setExpandedRefs] = useState<number[]>([])
-  const [expandedRelated, setExpandedRelated] = useState<{ [challengeIndex: number]: number[] }>({})
-
-  const meetingId = Number.parseInt(id);
-  const meeting = getMeetingData(meetingId);
+  useEffect(() => {
+    const fetchMeeting = async () => {
+      try {
+        const meetings = await getLatestMeetings();
+        console.log('Fetched meetings:', meetings);
+        console.log('Looking for meeting with id:', Number.parseInt(id));
+        const foundMeeting = meetings.find(m => m.id === Number.parseInt(id));
+        console.log('Found meeting:', foundMeeting);
+        
+        if (!foundMeeting) {
+          console.log('Meeting not found, redirecting to 404');
+          notFound();
+          return;
+        }
+        
+        setMeeting(foundMeeting);
+      } catch (error) {
+        console.error('Error fetching meeting:', error);
+        notFound();
+      }
+    };
+    fetchMeeting();
+  }, [id]);
 
   if (!meeting) {
-    notFound();
+    return null; // またはローディングスピナーを表示
   }
 
   // Check if this is the current user's meeting
-  const isOwner = isUserMeeting(meetingId);
+  const isOwner = isUserMeeting(meeting.id);
 
   // Check if this is a document (uploaded) or a recording
   const isDocument = meeting.isDocument === true;
 
   // Get solution proposal and references only for user's own meetings
   const solutionProposal = isOwner ? generateSolutionProposal(meeting) : "";
-  const references = isOwner ? getRelevantReferences(meetingId) : [];
+  const references = isOwner ? getRelevantReferences(meeting.id) : [];
 
   const toggleReference = (index: number) => {
     setExpandedRefs((prev) =>
@@ -93,43 +128,44 @@ export default function MeetingPage({
   };
 
   // Parse knowledge into multiple items with titles from the meeting data
-  const knowledgeItems: KnowledgeItem[] = parseKnowledgeItems(
-    meeting.knowledge,
-    meeting.knowledgeTags,
-    meeting.knowledgeTitles || []
-  );
+  const knowledgeItems: KnowledgeItem[] = meeting.knowledges.map(knowledge => ({
+    title: knowledge.title,
+    content: knowledge.content,
+    tags: [], // タグは現在の実装では使用されていないため空配列を設定
+  }));
 
   // Parse challenges into multiple items with titles from the meeting data
-  const challengeItems: ChallengeItem[] = parseChallengeItems(
-    meeting.issues,
-    meeting.challengeTags,
-    meeting.challengeTitles || []
-  ).map((item) => {
-    // Find related knowledge for all recordings (not documents)
-    if (!isDocument) {
-      // Find related knowledge specifically for this challenge's tags
-      const relatedItems = findRelatedKnowledge(item.tags);
-
-      // Sort by relevance to ensure most helpful knowledge appears first
-      relatedItems.sort((a, b) => b.matchCount - a.matchCount);
-
-      return {
-        ...item,
-        relatedKnowledge: relatedItems.map((related) => ({
-          ...related,
-          relevance: related.matchCount, // Store the match count as relevance
-        })),
-      };
-    }
-    return item;
-  });
+  const challengeItems: ChallengeItem[] = meeting.challenges.map(challenge => ({
+    title: challenge.title,
+    content: challenge.content,
+    tags: [], // タグは現在の実装では使用されていないため空配列を設定
+    relatedKnowledge: !isDocument ? findRelatedKnowledge([]).map(related => ({
+      ...related,
+      relevance: related.matchingTags?.length || 0,
+    })) : undefined,
+  }));
 
   // Check if we're viewing from the sidebar (we'll always show the content but hide Hints)
   const isViewingFromSidebar = false;
 
+  const handleGenerateSolution = async () => {
+    try {
+      // すべてのchallengeの内容を集約
+      const allChallengeContent = challengeItems
+        .map(item => item.content)
+        .join('\n\n');
+
+      // 集約した内容を送信
+      const response = await sendChallengeToSolution(allChallengeContent);
+      setSolutionResponse(response);
+    } catch (error) {
+      console.error('Error generating solution:', error);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-cream">
-      <SidebarNav activeId={meetingId} />
+      <SidebarNav activeId={meeting.id} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b p-4 flex justify-between items-center border-blue/10">
@@ -178,7 +214,7 @@ export default function MeetingPage({
                   <div className="flex items-center gap-4 text-navy/70">
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-blue" />
-                      <span>{meeting.date}</span>
+                      <span>{new Date(meeting.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-blue" />
@@ -193,9 +229,9 @@ export default function MeetingPage({
                 <div>
                   {isOwner
                     ? "あなたのナレッジ"
-                    : `${meeting.owner.split("@")[0]}さんのナレッジ`}
+                    : `ユーザー${meeting.user_id}さんのナレッジ`}
                 </div>
-                <div>{meeting.date}</div>
+                <div>{new Date(meeting.created_at).toLocaleDateString()}</div>
               </div>
 
               {/* Summary - Show for all recordings and owner's uploads */}
@@ -385,74 +421,88 @@ export default function MeetingPage({
               )}
 
               {/* Related Knowledge (formerly Hints) - Only show for owner's content */}
-              {isOwner && solutionProposal && !isViewingFromSidebar && (
+              {isOwner && !isViewingFromSidebar && (
                 <div className="bg-blue/5 border border-blue/20 rounded-lg p-6 shadow-sm">
-                  <h2 className="text-xl font-semibold text-navy mb-4">
-                    Related Knowledge
-                  </h2>
-                  <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
-                    {solutionProposal}
-                  </p>
-
-                  <div className="border-t border-blue/10 pt-4 mt-6">
-                    <h3 className="text-navy font-medium flex items-center gap-2 mb-4">
-                      <LinkIcon className="h-4 w-4" />
-                      参考情報
-                    </h3>
-
-                    <div className="space-y-3">
-                      {references.map((site, index) => (
-                        <div
-                          key={index}
-                          className="bg-white rounded-lg border border-blue/10 overflow-hidden"
-                        >
-                          <div className="p-3 flex justify-between items-center">
-                            <h4 className="text-blue font-medium">
-                              {site.title}
-                            </h4>
-                            <button
-                              onClick={() => toggleReference(index)}
-                              className="flex items-center justify-center w-6 h-6 rounded-full bg-blue/10 hover:bg-blue/20 text-blue transition-colors"
-                            >
-                              {expandedRefs.includes(index) ? (
-                                <Minus size={14} />
-                              ) : (
-                                <Plus size={14} />
-                              )}
-                            </button>
-                          </div>
-
-                          {expandedRefs.includes(index) && (
-                            <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
-                              <p className="text-navy/70 text-sm">
-                                {site.description}
-                              </p>
-
-                              <div className="mt-3 pt-3 border-t border-blue/5">
-                                <h5 className="text-xs font-medium text-navy/60 uppercase mb-2">
-                                  Key Points
-                                </h5>
-                                <ul className="text-sm text-navy/70 space-y-1 pl-4 list-disc">
-                                  <li>
-                                    Comprehensive guide to best practices and
-                                    standards
-                                  </li>
-                                  <li>
-                                    Includes practical examples and
-                                    implementation tips
-                                  </li>
-                                  <li>
-                                    Updated with the latest industry
-                                    recommendations
-                                  </li>
-                                </ul>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold text-navy">
+                      Related Knowledge
+                    </h2>
+                    <button 
+                      onClick={handleGenerateSolution}
+                      className="bg-blue text-white px-4 py-2 rounded-lg hover:bg-blue/90 transition-colors"
+                    >
+                      知見生成
+                    </button>
                   </div>
+                  
+                  {solutionResponse && (
+                    <>
+                      <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
+                        {solutionResponse.summary}
+                      </p>
+
+                      <div className="border-t border-blue/10 pt-4 mt-6">
+                        <h3 className="text-navy font-medium flex items-center gap-2 mb-4">
+                          <LinkIcon className="h-4 w-4" />
+                          参考情報
+                        </h3>
+
+                        <div className="space-y-3">
+                          {solutionResponse?.knowledges.map((knowledge, index) => (
+                            <div
+                              key={index}
+                              className="bg-white rounded-lg border border-blue/10 overflow-hidden"
+                            >
+                              <div className="p-3 flex justify-between items-center">
+                                <h4 className="text-blue font-medium">
+                                  {knowledge.title}
+                                </h4>
+                                <button
+                                  onClick={() => toggleReference(index)}
+                                  className="flex items-center justify-center w-6 h-6 rounded-full bg-blue/10 hover:bg-blue/20 text-blue transition-colors"
+                                >
+                                  {expandedRefs.includes(index) ? (
+                                    <Minus size={14} />
+                                  ) : (
+                                    <Plus size={14} />
+                                  )}
+                                </button>
+                              </div>
+
+                              {expandedRefs.includes(index) && (
+                                <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <p className="text-navy/70 text-sm whitespace-pre-wrap">
+                                    {knowledge.content}
+                                  </p>
+                                  <div className="mt-3 pt-3 border-t border-blue/5 flex justify-between items-center">
+                                    <p className="text-xs text-navy/60">
+                                      Knowledge by: {knowledge.user_name}
+                                    </p>
+                                    <button 
+                                      className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors"
+                                      onClick={() => {
+                                        setLikedRefs(prev => 
+                                          prev.includes(index) 
+                                            ? prev.filter(i => i !== index)
+                                            : [...prev, index]
+                                        );
+                                      }}
+                                    >
+                                      <Heart 
+                                        size={14} 
+                                        fill={likedRefs.includes(index) ? "currentColor" : "none"}
+                                      />
+                                      <span className="text-xs">Thanks</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

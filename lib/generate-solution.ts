@@ -178,7 +178,8 @@ export async function sendChallengeToSolution(challengeContent: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content:challengeContent,
+        content: challengeContent,
+        is_search: true, // 検索クエリであることを示すフラグ
       }),
     });
 
@@ -187,7 +188,10 @@ export async function sendChallengeToSolution(challengeContent: string) {
     }
 
     const data = await response.json();
-    return data;
+    return {
+      summary: data.summary || "検索結果のサマリー",
+      knowledges: data.knowledges || [],
+    };
   } catch (error) {
     console.error('Error sending challenge to solution:', error);
     throw error;

@@ -3,66 +3,59 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Search } from "lucide-react"
+import { Search, LinkIcon, Heart, Plus, Minus, Mic } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import KnowledgeCarousel from "@/components/knowledge-carousel"
 import SidebarNav from "@/components/sidebar-nav"
-import SearchResults from "@/components/search-results"
 import { getOtherUsersMeetings } from "@/lib/meeting-data"
+import { sendChallengeToSolution } from "@/lib/generate-solution"
+
+interface SearchResult {
+  id: number;
+  title: string;
+  content: string;
+  user_id: number;
+  user_name: string;
+}
 
 export default function HomePage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<{
+    summary: string;
+    knowledges: SearchResult[];
+  } | null>(null)
+  const [expandedRefs, setExpandedRefs] = useState<number[]>([])
+  const [likedRefs, setLikedRefs] = useState<number[]>([])
+  const [showVoiceMessage, setShowVoiceMessage] = useState(false)
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!searchQuery.trim()) return
 
     setIsSearching(true)
 
-    // In a real app, you would call an API to search
-    // For this demo, we'll simulate search by filtering meetings from other users
-    const otherUsersMeetings = getOtherUsersMeetings()
+    try {
+      const response = await sendChallengeToSolution(searchQuery)
+      setSearchResults(response)
+    } catch (error) {
+      console.error('Error performing search:', error)
+      setSearchResults(null)
+    }
+  }
 
-    // Simple search implementation that checks if the query appears in title, summary, knowledge, or tags
-    const results = otherUsersMeetings
-      .filter(
-        (meeting) =>
-          meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          meeting.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          meeting.knowledge.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          meeting.knowledgeTags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          meeting.challengeTags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
-      )
-      .map((meeting) => ({
-        id: meeting.id,
-        title: meeting.title,
-        summary: meeting.summary.substring(0, 120) + (meeting.summary.length > 120 ? "..." : ""),
-        isDocument: meeting.isDocument,
-        author: meeting.owner.split("@")[0], // Simple way to get username from email
-        tags: [...meeting.knowledgeTags], // Include tags in search results
-        // Calculate a simple relevance score based on how many times the query appears
-        relevance:
-          (meeting.title.toLowerCase().split(searchQuery.toLowerCase()).length - 1) * 3 +
-          (meeting.summary.toLowerCase().split(searchQuery.toLowerCase()).length - 1) * 2 +
-          (meeting.knowledge.toLowerCase().split(searchQuery.toLowerCase()).length - 1) +
-          meeting.knowledgeTags.filter((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())).length * 4 +
-          meeting.challengeTags.filter((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())).length * 3,
-      }))
-
-    // Sort by relevance
-    results.sort((a, b) => b.relevance - a.relevance)
-
-    setSearchResults(results)
+  const toggleReference = (index: number) => {
+    setExpandedRefs((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    )
   }
 
   const handleVoiceSearch = () => {
-    // In a real app, this would trigger voice recognition
-    alert("音声検索機能は現在開発中です。")
+    setShowVoiceMessage(true)
+    setTimeout(() => setShowVoiceMessage(false), 3000) // 3秒後にメッセージを非表示
   }
 
   return (
@@ -126,33 +119,98 @@ export default function HomePage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <button type="button" onClick={handleVoiceSearch} className="p-3 bg-blue/10 border-l border-blue/20">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-blue"
-                  >
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" x2="12" y1="19" y2="22"></line>
-                  </svg>
+                <button
+                  type="button"
+                  onClick={handleVoiceSearch}
+                  className="p-3 text-blue hover:bg-blue/10 transition-colors"
+                >
+                  <Mic size={20} />
+                </button>
+                <button type="submit" className="p-3 bg-blue text-white hover:bg-blue/90 transition-colors">
+                  検索
                 </button>
               </div>
+              {showVoiceMessage && (
+                <div className="absolute top-full left-0 mt-2 bg-navy text-cream px-4 py-2 rounded-lg text-sm shadow-sm">
+                  申し訳ありません。音声入力機能は開発中です
+                </div>
+              )}
             </form>
 
             {/* Search Results */}
-            {isSearching && searchResults.length > 0 && <SearchResults results={searchResults} query={searchQuery} />}
+            {isSearching && searchResults && (
+              <div className="bg-blue/5 border border-blue/20 rounded-lg p-6 shadow-sm">
+                <h2 className="text-xl font-semibold text-navy mb-6">Results</h2>
+                <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
+                  {searchResults.summary}
+                </p>
 
-            {isSearching && searchResults.length === 0 && (
+                <div className="border-t border-blue/10 pt-4 mt-6">
+                  <h3 className="text-navy font-medium flex items-center gap-2 mb-4">
+                    <LinkIcon className="h-4 w-4" />
+                    参考情報
+                  </h3>
+
+                  <div className="space-y-3">
+                    {searchResults.knowledges.map((knowledge, index) => (
+                      <div
+                        key={index}
+                        className="bg-white rounded-lg border border-blue/10 overflow-hidden"
+                      >
+                        <div className="p-3 flex justify-between items-center">
+                          <h4 className="text-blue font-medium">
+                            {knowledge.title}
+                          </h4>
+                          <button
+                            onClick={() => toggleReference(index)}
+                            className="flex items-center justify-center w-6 h-6 rounded-full bg-blue/10 hover:bg-blue/20 text-blue transition-colors"
+                          >
+                            {expandedRefs.includes(index) ? (
+                              <Minus size={14} />
+                            ) : (
+                              <Plus size={14} />
+                            )}
+                          </button>
+                        </div>
+
+                        {expandedRefs.includes(index) && (
+                          <div className="p-3 pt-0 border-t border-blue/10 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <p className="text-navy/70 text-sm whitespace-pre-wrap">
+                              {knowledge.content}
+                            </p>
+                            <div className="mt-3 pt-3 border-t border-blue/5 flex justify-between items-center">
+                              <p className="text-xs text-navy/60">
+                                Knowledge by: {knowledge.user_name}
+                              </p>
+                              <button 
+                                className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors"
+                                onClick={() => {
+                                  setLikedRefs(prev => 
+                                    prev.includes(index) 
+                                      ? prev.filter(i => i !== index)
+                                      : [...prev, index]
+                                  );
+                                }}
+                              >
+                                <Heart 
+                                  size={14} 
+                                  fill={likedRefs.includes(index) ? "currentColor" : "none"}
+                                />
+                                <span className="text-xs">Thanks</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isSearching && !searchResults && (
               <div className="text-center py-8">
-                <p className="text-navy/70">「{searchQuery}」に一致するナレッジが見つかりませんでした。</p>
+                <p className="text-navy/70">検索中...</p>
               </div>
             )}
 

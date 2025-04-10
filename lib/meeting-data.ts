@@ -64,18 +64,34 @@ let meetingsData: Meeting[] = []
 
 export async function getLatestMeetings(): Promise<Meeting[]> {
   try {
+    console.log('Fetching latest meetings for user:', currentUser.id);
     const response = await fetch(
       process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting?user_id=${currentUser.id}`, // デプロイ環境用
       // `http://127.0.0.1:8000/latest_meeting?user_id=${currentUser.id}`, // ローカル環境用
     );
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch latest meeting');
+      const errorText = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to fetch latest meeting: ${response.status} ${response.statusText}`);
     }
+    
     const data = await response.json();
+    console.log('Received meetings data:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('Invalid data format received:', data);
+      throw new Error('Invalid data format: expected an array of meetings');
+    }
+    
     meetingsData = data as Meeting[];
     return meetingsData;
   } catch (error) {
-    console.error('Error fetching latest meeting:', error);
+    console.error('Error in getLatestMeetings:', error);
     throw error;
   }
 }
@@ -88,8 +104,37 @@ export function getUserMeetings(): Meeting[] {
   return meetingsData.filter((meeting) => meeting.user_id === currentUser.id)
 }
 
-export function getOtherUsersMeetings(): Meeting[] {
-  return meetingsData.filter((meeting) => meeting.owner !== currentUser)
+export async function getOtherUsersMeetings(): Promise<Meeting[]> {
+  try {
+    console.log('Fetching other users meetings for user:', currentUser.id);
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
+      // `http://127.0.0.1:8000/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to fetch other users meetings: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Received other users meetings data:', data);
+    
+    if (!Array.isArray(data)) {
+      console.error('Invalid data format received:', data);
+      throw new Error('Invalid data format: expected an array of meetings');
+    }
+    
+    return data as Meeting[];
+  } catch (error) {
+    console.error('Error in getOtherUsersMeetings:', error);
+    throw error;
+  }
 }
 
 export function isUserMeeting(meetingId: number): boolean {
@@ -177,4 +222,31 @@ export function extractTagsFromText(text: string): string[] {
     .sort((a, b) => b[1] - a[1]) // Sort by frequency
     .slice(0, 10) // Take top 10
     .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1)); // Capitalize first letter
+}
+
+// Function to perform RAG search over meeting knowledge
+export async function sendSearchToSolution(searchContent: string) {
+  try {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_API_ENDPOINT + '/solution_knowledge', { // デプロイ環境用
+      // 'http://127.0.0.1:8000/solution_knowledge', { // ローカル環境用
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content:searchContent,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send challenge to solution endpoint');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error sending challenge to solution:', error);
+    throw error;
+  }
 }

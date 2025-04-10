@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Search, LinkIcon, Heart, Plus, Minus, Mic } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import KnowledgeCarousel from "@/components/knowledge-carousel"
-import SidebarNav from "@/components/sidebar-nav"
-import { getOtherUsersMeetings } from "@/lib/meeting-data"
-import { sendChallengeToSolution } from "@/lib/generate-solution"
+import { useState } from "react";
+import { Search, LinkIcon, Heart, Plus, Minus, Mic } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import KnowledgeCarousel from "@/components/knowledge-carousel";
+import SidebarNav from "@/components/sidebar-nav";
+import { getOtherUsersMeetings } from "@/lib/meeting-data";
+import { sendChallengeToSolution } from "@/lib/generate-solution";
 
 interface SearchResult {
   id: number;
@@ -20,43 +20,43 @@ interface SearchResult {
 }
 
 export default function HomePage() {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{
     summary: string;
     knowledges: SearchResult[];
-  } | null>(null)
-  const [expandedRefs, setExpandedRefs] = useState<number[]>([])
-  const [likedRefs, setLikedRefs] = useState<number[]>([])
-  const [showVoiceMessage, setShowVoiceMessage] = useState(false)
+  } | null>(null);
+  const [expandedRefs, setExpandedRefs] = useState<number[]>([]);
+  const [likedRefs, setLikedRefs] = useState<number[]>([]);
+  const [showVoiceMessage, setShowVoiceMessage] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!searchQuery.trim()) return
+    if (!searchQuery.trim()) return;
 
-    setIsSearching(true)
+    setIsSearching(true);
 
     try {
-      const response = await sendChallengeToSolution(searchQuery)
-      setSearchResults(response)
+      const response = await sendChallengeToSolution(searchQuery);
+      setSearchResults(response);
     } catch (error) {
-      console.error('Error performing search:', error)
-      setSearchResults(null)
+      console.error("Error performing search:", error);
+      setSearchResults(null);
     }
-  }
+  };
 
   const toggleReference = (index: number) => {
     setExpandedRefs((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    )
-  }
+    );
+  };
 
   const handleVoiceSearch = () => {
-    setShowVoiceMessage(true)
-    setTimeout(() => setShowVoiceMessage(false), 3000) // 3秒後にメッセージを非表示
-  }
+    setShowVoiceMessage(true);
+    setTimeout(() => setShowVoiceMessage(false), 3000); // 3秒後にメッセージを非表示
+  };
 
   return (
     <div className="flex h-screen bg-cream">
@@ -68,29 +68,6 @@ export default function HomePage() {
         <header className="border-b p-4 flex justify-between items-center bg-cream border-blue/10">
           <div className="flex-1"></div>
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full hover:bg-blue/10">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-navy"
-              >
-                <path d="M12 2v1"></path>
-                <path d="M12 21v1"></path>
-                <path d="M4.22 4.22l.77.77"></path>
-                <path d="M18.5 18.5l.77.77"></path>
-                <path d="M2 12h1"></path>
-                <path d="M21 12h1"></path>
-                <path d="M4.22 19.78l.77-.77"></path>
-                <path d="M18.5 5.5l.77-.77"></path>
-              </svg>
-            </button>
             <Link href="/account">
               <div className="w-8 h-8 rounded-full bg-navy text-cream flex items-center justify-center cursor-pointer">
                 <span className="text-sm font-medium">U</span>
@@ -102,8 +79,12 @@ export default function HomePage() {
         <div className="flex-1 overflow-auto p-6 flex flex-col items-center">
           <div className="max-w-3xl w-full space-y-12">
             <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold tracking-tight text-navy">Flowledge</h1>
-              <p className="text-navy/70">ナレッジを検索するか、新しい会議を記録しましょう</p>
+              <h1 className="text-3xl font-bold tracking-tight text-navy">
+                Flowledge
+              </h1>
+              <p className="text-navy/70">
+                ナレッジを検索するか、新しい会議を記録しましょう
+              </p>
             </div>
 
             {/* Search Bar */}
@@ -126,7 +107,10 @@ export default function HomePage() {
                 >
                   <Mic size={20} />
                 </button>
-                <button type="submit" className="p-3 bg-blue text-white hover:bg-blue/90 transition-colors">
+                <button
+                  type="submit"
+                  className="p-3 bg-blue text-white hover:bg-blue/90 transition-colors"
+                >
                   検索
                 </button>
               </div>
@@ -140,7 +124,9 @@ export default function HomePage() {
             {/* Search Results */}
             {isSearching && searchResults && (
               <div className="bg-blue/5 border border-blue/20 rounded-lg p-6 shadow-sm">
-                <h2 className="text-xl font-semibold text-navy mb-6">Results</h2>
+                <h2 className="text-xl font-semibold text-navy mb-6">
+                  Results
+                </h2>
                 <p className="text-navy/90 leading-relaxed text-lg font-medium mb-6">
                   {searchResults.summary}
                 </p>
@@ -182,19 +168,23 @@ export default function HomePage() {
                               <p className="text-xs text-navy/60">
                                 Knowledge by: {knowledge.user_name}
                               </p>
-                              <button 
+                              <button
                                 className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors"
                                 onClick={() => {
-                                  setLikedRefs(prev => 
-                                    prev.includes(index) 
-                                      ? prev.filter(i => i !== index)
+                                  setLikedRefs((prev) =>
+                                    prev.includes(index)
+                                      ? prev.filter((i) => i !== index)
                                       : [...prev, index]
                                   );
                                 }}
                               >
-                                <Heart 
-                                  size={14} 
-                                  fill={likedRefs.includes(index) ? "currentColor" : "none"}
+                                <Heart
+                                  size={14}
+                                  fill={
+                                    likedRefs.includes(index)
+                                      ? "currentColor"
+                                      : "none"
+                                  }
                                 />
                                 <span className="text-xs">Thanks</span>
                               </button>
@@ -217,7 +207,9 @@ export default function HomePage() {
             {/* Knowledge Carousel - Only show when not searching */}
             {!isSearching && (
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-navy">最近共有されたナレッジ</h2>
+                <h2 className="text-xl font-semibold text-navy">
+                  最近共有されたナレッジ
+                </h2>
                 <KnowledgeCarousel />
               </div>
             )}
@@ -225,6 +217,5 @@ export default function HomePage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
-

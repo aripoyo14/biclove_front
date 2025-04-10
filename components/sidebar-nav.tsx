@@ -1,23 +1,23 @@
 "use client";
 
-import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { getLatestMeetings, type Meeting } from "@/lib/meeting-data"
-import { useEffect, useState } from "react"
+import { Mic, Upload, Droplets, Heart, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { getLatestMeetings, type Meeting } from "@/lib/meeting-data";
+import { useEffect, useState } from "react";
 
 export default function SidebarNav({ activeId }: { activeId?: number }) {
-  const router = useRouter()
-  const [userMeetings, setUserMeetings] = useState<Meeting[]>([])
+  const router = useRouter();
+  const [userMeetings, setUserMeetings] = useState<Meeting[]>([]);
 
   useEffect(() => {
     const fetchMeetings = async () => {
-      const meetings = await getLatestMeetings()
-      setUserMeetings(meetings)
-    }
-    fetchMeetings()
-  }, [])
+      const meetings = await getLatestMeetings();
+      setUserMeetings(meetings);
+    };
+    fetchMeetings();
+  }, []);
 
   // Mock total thanks count - in a real app, this would come from your backend
   const totalThanks = 42;
@@ -60,7 +60,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
           </button>
         </Link>
         <Link href="/upload">
-          <button className="w-full bg-yellow text-navy rounded-md py-2 px-4 flex items-center justify-center gap-2 hover:bg-yellow/90 transition-colors">
+          <button className="w-full bg-yellow text-navy rounded-md py-2 px-4 flex items-center justify-center gap-2 hover:bg-yellow/90 transition-colors mt-2">
             <Upload size={18} />
             <span>Upload</span>
           </button>
@@ -73,17 +73,19 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
           <h3 className="text-xs font-medium text-cream/70 px-3 py-2">
             マイナレッジ
           </h3>
+
           {Object.entries(
             userMeetings.reduce(
               (acc: Record<string, Meeting[]>, meeting: Meeting) => {
-                if (!acc[meeting.date]) {
-                  acc[meeting.date] = []
+                const date = meeting.created_at.slice(0, 10);
+                if (!acc[date]) {
+                  acc[date] = [];
                 }
-                acc[meeting.date].push(meeting)
-                return acc
+                acc[date].push(meeting);
+                return acc;
               },
-              {} as Record<string, typeof userMeetings>,
-            ),
+              {} as Record<string, typeof userMeetings>
+            )
           ).map(([date, meetings]) => (
             <div key={date} className="mb-4">
               <h3 className="text-xs font-medium text-cream/70 px-3 py-2">

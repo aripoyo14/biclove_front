@@ -1,5 +1,5 @@
-import UploadDocument from "@/components/upload-document"
-import SidebarNav from "@/components/sidebar-nav"
+import UploadDocument from "@/components/upload-document";
+import SidebarNav from "@/components/sidebar-nav";
 
 export default function UploadPage() {
   return (
@@ -11,7 +11,7 @@ export default function UploadPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b p-4 flex justify-between items-center border-blue/10">
           <div className="flex-1">
-            <h1 className="text-lg font-medium text-navy">Upload</h1>
+            <h1 className="text-lg font-medium text-navy mt-2">Upload</h1>
           </div>
           <div className="flex items-center gap-4">
             <button className="p-2 rounded-full hover:bg-blue/10">
@@ -48,6 +48,5 @@ export default function UploadPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
-

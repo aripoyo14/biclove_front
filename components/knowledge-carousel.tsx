@@ -4,22 +4,44 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getOtherUsersMeetings } from "@/lib/meeting-data"
+import { getOtherUsersMeetings, Meeting } from "@/lib/meeting-data"
+
+interface CarouselItem {
+  id: number
+  title: string
+  author: string
+  date: string
+  tags: string[]
+}
 
 export default function KnowledgeCarousel() {
   const router = useRouter()
+  const [meetings, setMeetings] = useState<Meeting[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [visibleItems, setVisibleItems] = useState(3)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Get knowledge items from other users
-  const otherUsersKnowledge = getOtherUsersMeetings().map((meeting) => ({
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        console.log('Fetching other users meetings...');
+        const latestMeetings = await getOtherUsersMeetings();
+        console.log('Fetched meetings:', latestMeetings);
+        setMeetings(latestMeetings);
+      } catch (error) {
+        console.error('Error fetching meetings:', error);
+        setMeetings([]); // エラー時は空の配列を設定
+      }
+    }
+    fetchMeetings();
+  }, [])
+
+  const carouselItems: CarouselItem[] = meetings.map((meeting) => ({
     id: meeting.id,
-    title: meeting.title,
-    author: meeting.owner.split("@")[0], // Simple way to get username from email
-    date: meeting.date,
-    category: meeting.isDocument ? "Document" : "Meeting",
-    tags: meeting.knowledgeTags.slice(0, 3), // Show up to 3 tags
+    title: meeting.knowledges[0]?.title || "タイトルなし", // 最初のナレッジのタイトルを使用
+    author: meeting.user_name, // user_idの代わりにuser_nameを使用
+    date: new Date(meeting.created_at).toLocaleDateString(),
+    tags: meeting.knowledges.map(k => k.title).slice(0, 3), // ナレッジのタイトルをタグとして使用
   }))
 
   useEffect(() => {
@@ -39,7 +61,7 @@ export default function KnowledgeCarousel() {
     return () => window.removeEventListener("resize", updateVisibleItems)
   }, [])
 
-  const maxIndex = Math.max(0, otherUsersKnowledge.length - visibleItems)
+  const maxIndex = Math.max(0, carouselItems.length - visibleItems)
 
   const handlePrev = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1))
@@ -50,8 +72,8 @@ export default function KnowledgeCarousel() {
   }
 
   const handleItemClick = (id: number) => {
-    // Navigate to the meeting detail page
-    router.push(`/meeting/${id}`)
+    // 開発中のメッセージを表示
+    alert("申し訳ありません。本機能は現在開発中です");
   }
 
   return (
@@ -83,7 +105,7 @@ export default function KnowledgeCarousel() {
             transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
           }}
         >
-          {otherUsersKnowledge.map((item) => (
+          {carouselItems.map((item) => (
             <div
               key={item.id}
               className="min-w-[calc(100%/var(--visible-items))] px-2"
@@ -98,7 +120,6 @@ export default function KnowledgeCarousel() {
                     <h3 className="font-medium text-navy">{item.title}</h3>
                     <p className="text-sm text-navy/70">by {item.author}</p>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-yellow/20 text-navy rounded-full">{item.category}</span>
                 </div>
 
                 {/* Tags */}

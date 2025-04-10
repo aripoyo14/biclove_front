@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { FileText, Mic, Tag } from "lucide-react"
+import { sendSearchToSolution } from "@/lib/meeting-data"
 
 interface SearchResult {
   id: number

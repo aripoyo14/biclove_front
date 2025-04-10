@@ -125,7 +125,10 @@ export default function RecordMeeting() {
 
   // 一時停止／再開
   const pauseRecording = () => {
-    if (mediaRecorderRef.current && recordingState === RecordingState.RECORDING) {
+    if (
+      mediaRecorderRef.current &&
+      recordingState === RecordingState.RECORDING
+    ) {
       mediaRecorderRef.current.pause();
       setRecordingState(RecordingState.PAUSED);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -180,7 +183,9 @@ export default function RecordMeeting() {
 
       // meeting_id および meeting.title（不要な引用符の除去付き）をセット
       setMeetingId(result.meeting_id);
-      setMeetingTitle(result.meeting.title ? result.meeting.title.replace(/^"|"$/g, "") : "");
+      setMeetingTitle(
+        result.meeting.title ? result.meeting.title.replace(/^"|"$/g, "") : ""
+      );
 
       // knowledges / challenges はトップレベルに存在するため、それぞれから id を取得
       setKnowledgeId(result.knowledges[0]?.id || null);
@@ -193,20 +198,24 @@ export default function RecordMeeting() {
         summary: result.meeting.summary,
         knowledges: result.knowledges.map((k: any) => ({
           id: k.id,
-          title: k.title ? k.title.replace(/^"|"$/g, "") : "デフォルト知見タイトル",
+          title: k.title
+            ? k.title.replace(/^"|"$/g, "")
+            : "デフォルト知見タイトル",
           content: k.content,
           tags: k.tags || [],
         })),
         challenges: result.challenges.map((c: any) => ({
           id: c.id,
-          title: c.title ? c.title.replace(/^"|"$/g, "") : "デフォルト課題タイトル",
+          title: c.title
+            ? c.title.replace(/^"|"$/g, "")
+            : "デフォルト課題タイトル",
           content: c.content,
           tags: c.tags || [],
         })),
         solutionKnowledge: "",
       });
 
-setRecordingState(RecordingState.COMPLETED);
+      setRecordingState(RecordingState.COMPLETED);
     } catch (error) {
       console.error("Error during upload:", error);
       setRecordingState(RecordingState.STOPPED);
@@ -291,59 +300,60 @@ setRecordingState(RecordingState.COMPLETED);
     }
   };
 
-  const handleUploadClick = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("user_id", "1");
+  //const handleUploadClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // const file = e.target.files?.[0];
+  //  if (!file) return;
+  //  const formData = new FormData();
+  //   formData.append("file", file);
+  //   formData.append("user_id", "1");
 
-    try {
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
-        { method: "POST", body: formData }
-      );
-      if (!response.ok)
-        throw new Error("Audio file upload failed");
-      const result = await response.json();
+  //   try {
+  //     const response = await fetch(
+  //       process.env.NEXT_PUBLIC_API_ENDPOINT + "/upload-audio",
+  //       { method: "POST", body: formData }
+  //     );
+  //     if (!response.ok) throw new Error("Audio file upload failed");
+  //     const result = await response.json();
 
-      setMeetingId(result.meeting_id);
-      setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
-      setChallengeId(result.parsed_summary.challenges[0]?.id || null);
-      console.log("Upload successful:", result);
+  //     setMeetingId(result.meeting_id);
+  //     setKnowledgeId(result.parsed_summary.knowledges[0]?.id || null);
+  //     setChallengeId(result.parsed_summary.challenges[0]?.id || null);
+  //     console.log("Upload successful:", result);
 
-      setMeetingSummary({
-        summary: result.parsed_summary.summary,
-        knowledges: result.parsed_summary.knowledges.map((k: any) => ({
-          id: k.id,
-          // title が存在する場合、両端の引用符 " を除去する処理を追加
-          title: k.title ? k.title.replace(/^"|"$/g, "") : "デフォルト知見タイトル",
-          content: k.content,
-          tags: k.tags || [],
-        })),
-        challenges: result.parsed_summary.challenges.map((c: any) => ({
-          id: c.id,
-          title: c.title ? c.title.replace(/^"|"$/g, "") : "デフォルト課題タイトル",
-          content: c.content,
-          tags: c.tags || [],
-        })),
-        solutionKnowledge: "",
-      });
-      setRecordingState(RecordingState.COMPLETED);
-    } catch (error) {
-      console.error("Error during file upload:", error);
-      setRecordingState(RecordingState.STOPPED);
-    }
+  //     setMeetingSummary({
+  //       summary: result.parsed_summary.summary,
+  //       knowledges: result.parsed_summary.knowledges.map((k: any) => ({
+  //         id: k.id,
+  //         // title が存在する場合、両端の引用符 " を除去する処理を追加
+  //         title: k.title
+  //           ? k.title.replace(/^"|"$/g, "")
+  //           : "デフォルト知見タイトル",
+  //         content: k.content,
+  //         tags: k.tags || [],
+  //       })),
+  //       challenges: result.parsed_summary.challenges.map((c: any) => ({
+  //         id: c.id,
+  //         title: c.title
+  //           ? c.title.replace(/^"|"$/g, "")
+  //           : "デフォルト課題タイトル",
+  //         content: c.content,
+  //         tags: c.tags || [],
+  //       })),
+  //       solutionKnowledge: "",
+  //     });
+  //     setRecordingState(RecordingState.COMPLETED);
+  //   } catch (error) {
+  //     console.error("Error during file upload:", error);
+  //     setRecordingState(RecordingState.STOPPED);
+  //   }
 
-    if (mediaRecorderRef.current) {
-      const tracks = mediaRecorderRef.current.stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      mediaRecorderRef.current = null;
-    }
-    audioChunksRef.current = [];
-  };
+  //   if (mediaRecorderRef.current) {
+  //     const tracks = mediaRecorderRef.current.stream.getTracks();
+  //     tracks.forEach((track) => track.stop());
+  //     mediaRecorderRef.current = null;
+  //   }
+  //   audioChunksRef.current = [];
+  // };
 
   // レンダリング：録音状態に応じた UI
   const renderContent = () => {
@@ -354,19 +364,21 @@ setRecordingState(RecordingState.COMPLETED);
             <div className="w-24 h-24 rounded-full bg-blue/10 flex items-center justify-center">
               <Mic size={48} className="text-blue" />
             </div>
-            <h2 className="text-2xl font-semibold text-navy">Start Recording</h2>
+            <h2 className="text-2xl font-semibold text-navy">
+              Start Recording
+            </h2>
             <p className="text-navy/70 text-center max-w-md">
               Click the button below to start recording your meeting. The audio
               will be processed to generate a summary.
             </p>
-            <div>
+            {/*<div>
               <input
                 accept="audio/*"
                 id="upload-button"
                 type="file"
                 onChange={handleUploadClick}
               />
-            </div>
+            </div>*/}
             <Button
               size="lg"
               onClick={startRecording}
@@ -451,9 +463,12 @@ setRecordingState(RecordingState.COMPLETED);
             <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center">
               <Check size={48} className="text-white" />
             </div>
-            <h2 className="text-2xl font-semibold text-navy">Recording Complete</h2>
+            <h2 className="text-2xl font-semibold text-navy">
+              Recording Complete
+            </h2>
             <p className="text-navy/70 text-center max-w-md">
-              Your recording is ready to be processed. Click the button below to generate a summary.
+              Your recording is ready to be processed. Click the button below to
+              generate a summary.
             </p>
             <div className="flex gap-4">
               <Button
@@ -482,7 +497,9 @@ setRecordingState(RecordingState.COMPLETED);
             <div className="w-24 h-24 rounded-full bg-blue/10 flex items-center justify-center">
               <div className="w-12 h-12 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-semibold text-navy">Processing Recording</h2>
+            <h2 className="text-2xl font-semibold text-navy">
+              Processing Recording
+            </h2>
             <p className="text-navy/70 text-center max-w-md">
               Your recording is being processed. This may take a few moments.
             </p>
@@ -493,7 +510,9 @@ setRecordingState(RecordingState.COMPLETED);
         return (
           <div className="space-y-8 py-8">
             <header className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-navy">Meeting Record</h2>
+              <h2 className="text-2xl font-semibold text-navy">
+                Meeting Record
+              </h2>
               <Button
                 variant={isEditing ? "default" : "outline"}
                 onClick={() => setIsEditing(!isEditing)}
@@ -520,7 +539,9 @@ setRecordingState(RecordingState.COMPLETED);
                   <BookOpen className="text-blue h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-navy mb-3">Summary</h2>
+                  <h2 className="text-xl font-semibold text-navy mb-3">
+                    Summary
+                  </h2>
                   {isEditing ? (
                     <Textarea
                       value={meetingSummary.summary}
@@ -542,7 +563,10 @@ setRecordingState(RecordingState.COMPLETED);
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-navy">Knowledge</h2>
               {meetingSummary.knowledges.map((item, index) => (
-                <div key={item.id} className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4">
+                <div
+                  key={item.id}
+                  className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4"
+                >
                   <div className="flex items-start gap-4">
                     <div className="bg-yellow/10 p-2 rounded-full">
                       <Lightbulb className="text-yellow h-5 w-5" />
@@ -553,14 +577,22 @@ setRecordingState(RecordingState.COMPLETED);
                           <Input
                             value={item.title}
                             onChange={(e) =>
-                              updateKnowledgeItem(index, "title", e.target.value)
+                              updateKnowledgeItem(
+                                index,
+                                "title",
+                                e.target.value
+                              )
                             }
                             className="mb-2"
                           />
                           <Textarea
                             value={item.content}
                             onChange={(e) =>
-                              updateKnowledgeItem(index, "content", e.target.value)
+                              updateKnowledgeItem(
+                                index,
+                                "content",
+                                e.target.value
+                              )
                             }
                             className="min-h-[100px] bg-white border-blue/20"
                           />
@@ -586,7 +618,10 @@ setRecordingState(RecordingState.COMPLETED);
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-navy">Challenge</h2>
               {meetingSummary.challenges.map((item, index) => (
-                <div key={item.id} className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4">
+                <div
+                  key={item.id}
+                  className="bg-white border border-blue/20 rounded-lg p-6 shadow-sm mb-4"
+                >
                   <div className="flex items-start gap-4">
                     <div className="bg-red-100 p-2 rounded-full">
                       <AlertTriangle className="text-red-500 h-5 w-5" />
@@ -597,14 +632,22 @@ setRecordingState(RecordingState.COMPLETED);
                           <Input
                             value={item.title}
                             onChange={(e) =>
-                              updateChallengeItem(index, "title", e.target.value)
+                              updateChallengeItem(
+                                index,
+                                "title",
+                                e.target.value
+                              )
                             }
                             className="mb-2"
                           />
                           <Textarea
                             value={item.content}
                             onChange={(e) =>
-                              updateChallengeItem(index, "content", e.target.value)
+                              updateChallengeItem(
+                                index,
+                                "content",
+                                e.target.value
+                              )
                             }
                             className="min-h-[100px] bg-white border-blue/20"
                           />

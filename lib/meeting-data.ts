@@ -108,8 +108,8 @@ export async function getOtherUsersMeetings(): Promise<Meeting[]> {
   try {
     console.log('Fetching other users meetings for user:', currentUser.id);
     const response = await fetch(
-      process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
-      // `http://127.0.0.1:8000/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
+      // process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
+      `http://127.0.0.1:8000/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
     );
     
     if (!response.ok) {

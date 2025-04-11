@@ -99,9 +99,9 @@ export async function getLatestMeetings(): Promise<Meeting[]> {
   }
 }
 
-export function getAllMeetings(): Meeting[] {
-  return meetingsData;
-}
+//export function getAllMeetings(): Meeting[] {
+//  return meetingsData;
+//}
 
 export function getUserMeetings(): Meeting[] {
   return meetingsData.filter((meeting) => meeting.user_id === currentUser.id);

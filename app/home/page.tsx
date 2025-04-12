@@ -83,7 +83,7 @@ export default function HomePage() {
                 Flowledge
               </h1>
               <p className="text-navy/70">
-                ナレッジを検索するか、新しい会議を記録しましょう
+                ナレッジを巡らせ、ワクワクするマーケティングを
               </p>
             </div>
 

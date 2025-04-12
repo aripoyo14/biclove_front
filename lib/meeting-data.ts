@@ -24,25 +24,6 @@ export interface Knowledge {
   created_at: string;
 }
 
-export interface Challenge {
-  id: number;
-  user_id: number;
-  meeting_id: number;
-  title: string;
-  content: string;
-  created_at: string;
-}
-
-export interface Knowledge {
-  id: number;
-  user_id: number;
-  meeting_id: number;
-  title: string;
-  content: string;
-  thanks_count: number;
-  created_at: string;
-}
-
 export interface Meeting {
   id: number;
   user_id: number;
@@ -66,9 +47,10 @@ export async function getLatestMeetings(): Promise<Meeting[]> {
   try {
     console.log("Fetching latest meetings for user:", currentUser.id);
     const response = await fetch(
-      process.env.NEXT_PUBLIC_API_ENDPOINT +
-        `/latest_meeting?user_id=${currentUser.id}` // デプロイ環境用
-      // `http://127.0.0.1:8000/latest_meeting?user_id=${currentUser.id}`, // ローカル環境用
+      // デプロイ環境用
+      process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting?user_id=${currentUser.id}` 
+      // ローカル環境用
+      //`http://127.0.0.1:8000/latest_meeting?user_id=${currentUser.id}`, 
     );
 
     if (!response.ok) {
@@ -111,8 +93,8 @@ export async function getOtherUsersMeetings(): Promise<Meeting[]> {
   try {
     console.log("Fetching other users meetings for user:", currentUser.id);
     const response = await fetch(
-      // process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
-      `http://127.0.0.1:8000/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`
+      process.env.NEXT_PUBLIC_API_ENDPOINT + `/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`,
+      //`http://127.0.0.1:8000/latest_meeting/other_users?user_id=${currentUser.id}&limit=4`
     );
 
     if (!response.ok) {
@@ -235,10 +217,11 @@ export function extractTagsFromText(text: string): string[] {
 export async function sendSearchToSolution(searchContent: string) {
   try {
     const response = await fetch(
+      // デプロイ環境用
       process.env.NEXT_PUBLIC_API_ENDPOINT + "/solution_knowledge",
-      {
-        // デプロイ環境用
-        // 'http://127.0.0.1:8000/solution_knowledge', { // ローカル環境用
+      // ローカル環境用
+      //  'http://127.0.0.1:8000/solution_knowledge', 
+      { 
         method: "POST",
         headers: {
           "Content-Type": "application/json",

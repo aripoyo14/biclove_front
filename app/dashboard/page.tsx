@@ -1,21 +1,49 @@
-import SidebarNav from "@/components/sidebar-nav"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Heart, Eye, TrendingUp } from "lucide-react"
+import SidebarNav from "@/components/sidebar-nav";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Heart, Eye, TrendingUp } from "lucide-react";
 
 // Mock data for the dashboard
 const knowledgeStats = [
-  { id: 1, title: "Enhanced reporting dashboard", views: 128, thanks: 24 },
-  { id: 2, title: "Mobile app improvements", views: 96, thanks: 18 },
-  { id: 3, title: "Integration with third-party tools", views: 84, thanks: 15 },
-  { id: 4, title: "API improvements", views: 72, thanks: 12 },
-  { id: 5, title: "User authentication updates", views: 64, thanks: 9 },
-]
+  {
+    id: 1,
+    title: "家庭用ガス契約者向けのLINEキャンペーン実施",
+    views: 148,
+    thanks: 24,
+  },
+  {
+    id: 2,
+    title: "省エネ診断ツールのWebコンバージョン改善",
+    views: 106,
+    thanks: 18,
+  },
+  {
+    id: 3,
+    title: "電気＋ガスセット契約プロモーションの分析",
+    views: 94,
+    thanks: 15,
+  },
+  {
+    id: 4,
+    title: "メールマーケティングでの契約更新リマインド施策",
+    views: 82,
+    thanks: 12,
+  },
+  {
+    id: 5,
+    title: "SNS広告による30代ファミリー層への認知拡大",
+    views: 74,
+    thanks: 9,
+  },
+];
 
 export default function DashboardPage() {
   // Calculate totals
-  const totalViews = knowledgeStats.reduce((sum, item) => sum + item.views, 0)
-  const totalThanks = knowledgeStats.reduce((sum, item) => sum + item.thanks, 0)
-  const engagementRate = Math.round((totalThanks / totalViews) * 100)
+  const totalViews = knowledgeStats.reduce((sum, item) => sum + item.views, 0);
+  const totalThanks = knowledgeStats.reduce(
+    (sum, item) => sum + item.thanks,
+    0
+  );
+  const engagementRate = Math.round((totalThanks / totalViews) * 100);
 
   return (
     <div className="flex h-screen bg-cream">
@@ -26,7 +54,9 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b p-4 flex justify-between items-center border-blue/10">
           <div className="flex-1">
-            <h1 className="text-lg font-medium text-navy">Knowledge Analytics</h1>
+            <h1 className="text-lg font-medium text-navy">
+              あなたのナレッジの状況
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <button className="p-2 rounded-full hover:bg-blue/10">
@@ -66,12 +96,16 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-navy text-lg flex items-center gap-2">
                     <Eye className="h-5 w-5 text-blue" />
-                    Total Views
+                    総閲覧数
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-navy">{totalViews}</div>
-                  <p className="text-navy/60 text-sm">Across all knowledge items</p>
+                  <div className="text-3xl font-bold text-navy">
+                    {totalViews}
+                  </div>
+                  <p className="text-navy/60 text-sm">
+                    あなたのすべてのナレッジに対して
+                  </p>
                 </CardContent>
               </Card>
 
@@ -79,12 +113,14 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-navy text-lg flex items-center gap-2">
                     <Heart className="h-5 w-5 text-blue" />
-                    Total Thanks
+                    総Thanks数
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-navy">{totalThanks}</div>
-                  <p className="text-navy/60 text-sm">From all users</p>
+                  <div className="text-3xl font-bold text-navy">
+                    {totalThanks}
+                  </div>
+                  <p className="text-navy/60 text-sm">すべてのユーザーから</p>
                 </CardContent>
               </Card>
 
@@ -92,12 +128,16 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-navy text-lg flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-blue" />
-                    Engagement Rate
+                    Thanks獲得率
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-navy">{engagementRate}%</div>
-                  <p className="text-navy/60 text-sm">Thanks per view</p>
+                  <div className="text-3xl font-bold text-navy">
+                    {engagementRate}%
+                  </div>
+                  <p className="text-navy/60 text-sm">
+                    閲覧数に対するThanksから算出
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -105,12 +145,17 @@ export default function DashboardPage() {
             {/* Knowledge Performance */}
             <Card className="bg-white border-blue/20 mb-8">
               <CardHeader>
-                <CardTitle className="text-navy">Knowledge Performance</CardTitle>
+                <CardTitle className="text-navy">
+                  ナレッジパフォーマンス
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {knowledgeStats.map((item) => (
-                    <div key={item.id} className="border-b border-blue/10 pb-4 last:border-0 last:pb-0">
+                    <div
+                      key={item.id}
+                      className="border-b border-blue/10 pb-4 last:border-0 last:pb-0"
+                    >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-medium text-navy">{item.title}</h3>
                         <div className="flex items-center gap-4">
@@ -127,7 +172,11 @@ export default function DashboardPage() {
                       <div className="w-full bg-blue/10 rounded-full h-2">
                         <div
                           className="bg-blue h-2 rounded-full"
-                          style={{ width: `${(item.thanks / knowledgeStats[0].thanks) * 100}%` }}
+                          style={{
+                            width: `${
+                              (item.thanks / knowledgeStats[0].thanks) * 100
+                            }%`,
+                          }}
                         ></div>
                       </div>
                     </div>
@@ -139,6 +188,5 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
-

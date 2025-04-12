@@ -20,7 +20,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
   }, []);
 
   // Mock total thanks count - in a real app, this would come from your backend
-  const totalThanks = 42;
+  const totalThanks = 78;
 
   const handleLogout = () => {
     // Clear authentication
@@ -46,7 +46,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
         <Link href="/dashboard">
           <button className="flex items-center gap-2 text-cream/80 hover:text-cream w-full py-2 px-3 rounded-md hover:bg-blue/20 transition-colors">
             <Heart size={16} />
-            <span className="text-sm">{totalThanks} thanks received</span>
+            <span className="text-base">{totalThanks} thanks received</span>
           </button>
         </Link>
       </div>
@@ -70,7 +70,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
       {/* User's Own Meetings/Documents */}
       <div className="flex-1 overflow-auto">
         <div className="p-2">
-          <h3 className="text-xs font-medium text-cream/70 px-3 py-2">
+          <h3 className="text-base font-medium text-cream/70 px-3 py-2">
             マイナレッジ
           </h3>
 
@@ -88,7 +88,7 @@ export default function SidebarNav({ activeId }: { activeId?: number }) {
             )
           ).map(([date, meetings]) => (
             <div key={date} className="mb-4">
-              <h3 className="text-xs font-medium text-cream/70 px-3 py-2">
+              <h3 className="text-sm font-medium text-cream/70 px-3 py-2">
                 {date}
               </h3>
               <ul className="space-y-1">

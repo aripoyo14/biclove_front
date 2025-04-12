@@ -365,11 +365,11 @@ export default function RecordMeeting() {
               <Mic size={48} className="text-blue" />
             </div>
             <h2 className="text-2xl font-semibold text-navy">
-              Start Recording
+              録音を開始します
             </h2>
             <p className="text-navy/70 text-center max-w-md">
-              Click the button below to start recording your meeting. The audio
-              will be processed to generate a summary.
+            下のボタンをクリックすると、会議の録音が開始されます。
+            音声は要約を作成するために処理されます。
             </p>
             {/*<div>
               <input
@@ -397,10 +397,10 @@ export default function RecordMeeting() {
               <Mic size={48} className="text-blue" />
             </div>
             <h2 className="text-2xl font-semibold text-navy">
-              Requesting Microphone Access
+              マイク接続のリクエスト
             </h2>
             <p className="text-navy/70 text-center max-w-md">
-              Please allow access to your microphone to start recording.
+              録音を開始するには、マイクにアクセスできるようにしてください。
             </p>
           </div>
         );
@@ -422,8 +422,8 @@ export default function RecordMeeting() {
             </div>
             <h2 className="text-2xl font-semibold text-navy">
               {recordingState === RecordingState.RECORDING
-                ? "Recording in Progress"
-                : "Recording Paused"}
+                ? "録音中"
+                : "録音一時停止"}
             </h2>
             <div className="flex gap-4">
               <Button
@@ -498,10 +498,10 @@ export default function RecordMeeting() {
               <div className="w-12 h-12 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
             </div>
             <h2 className="text-2xl font-semibold text-navy">
-              Processing Recording
+              処理中
             </h2>
             <p className="text-navy/70 text-center max-w-md">
-              Your recording is being processed. This may take a few moments.
+              録音したデータを処理中です。しばらくお待ちください。
             </p>
           </div>
         );

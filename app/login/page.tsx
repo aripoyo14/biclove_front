@@ -1,47 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Droplets, Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Droplets, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Check if user is already logged in
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isAuthenticated") === "true"
+    const isLoggedIn = localStorage.getItem("isAuthenticated") === "true";
     if (isLoggedIn) {
-      router.push("/home")
+      router.push("/home");
     }
-  }, [router])
+  }, [router]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     // Check credentials
-    if (email === "biclove@gmail.com" && password === "biclove@tech0") {
+    if (email === "a" && password === "a") {
       // Set authentication in localStorage
-      localStorage.setItem("isAuthenticated", "true")
+      localStorage.setItem("isAuthenticated", "true");
 
       // Redirect to home page
-      router.push("/home")
+      router.push("/home");
     } else {
-      setError("Invalid email or password")
-      setIsLoading(false)
+      setError("Invalid email or password");
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4">
@@ -57,12 +64,17 @@ export default function LoginPage() {
         <Card className="border-blue/20">
           <CardHeader>
             <CardTitle className="text-navy">Sign In</CardTitle>
-            <CardDescription>Enter your credentials to continue</CardDescription>
+            <CardDescription>
+              Enter your credentials to continue
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-navy">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium text-navy"
+                >
                   Email
                 </label>
                 <Input
@@ -76,7 +88,10 @@ export default function LoginPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-navy">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-navy"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -101,7 +116,11 @@ export default function LoginPage() {
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
-              <Button type="submit" className="w-full bg-blue hover:bg-blue/90" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full bg-blue hover:bg-blue/90"
+                disabled={isLoading}
+              >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
@@ -128,6 +147,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

@@ -203,10 +203,6 @@ export default function MeetingPage({
                         {new Date(meeting.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className="text-blue" />
-                      <span>会議時間: 45分</span>
-                    </div>
                   </div>
                 </div>
               )}

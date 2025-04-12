@@ -1,80 +1,80 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Tag } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { getOtherUsersMeetings, Meeting } from "@/lib/meeting-data"
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getOtherUsersMeetings, Meeting } from "@/lib/meeting-data";
 
 interface CarouselItem {
-  id: number
-  title: string
-  author: string
-  date: string
-  tags: string[]
+  id: number;
+  title: string;
+  author: string;
+  date: string;
+  //tags: string[]
 }
 
 export default function KnowledgeCarousel() {
-  const router = useRouter()
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [visibleItems, setVisibleItems] = useState(3)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleItems, setVisibleItems] = useState(3);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchMeetings = async () => {
       try {
-        console.log('Fetching other users meetings...');
+        console.log("Fetching other users meetings...");
         const latestMeetings = await getOtherUsersMeetings();
-        console.log('Fetched meetings:', latestMeetings);
+        console.log("Fetched meetings:", latestMeetings);
         setMeetings(latestMeetings);
       } catch (error) {
-        console.error('Error fetching meetings:', error);
+        console.error("Error fetching meetings:", error);
         setMeetings([]); // エラー時は空の配列を設定
       }
-    }
+    };
     fetchMeetings();
-  }, [])
+  }, []);
 
   const carouselItems: CarouselItem[] = meetings.map((meeting) => ({
     id: meeting.id,
     title: meeting.knowledges[0]?.title || "タイトルなし", // 最初のナレッジのタイトルを使用
     author: meeting.user_name, // user_idの代わりにuser_nameを使用
     date: new Date(meeting.created_at).toLocaleDateString(),
-    tags: meeting.knowledges.map(k => k.title).slice(0, 3), // ナレッジのタイトルをタグとして使用
-  }))
+    // tags: meeting.knowledges.map(k => k.title).slice(0, 3), // ナレッジのタイトルをタグとして使用
+  }));
 
   useEffect(() => {
     const updateVisibleItems = () => {
-      const width = window.innerWidth
+      const width = window.innerWidth;
       if (width < 640) {
-        setVisibleItems(1)
+        setVisibleItems(1);
       } else if (width < 1024) {
-        setVisibleItems(2)
+        setVisibleItems(2);
       } else {
-        setVisibleItems(3)
+        setVisibleItems(3);
       }
-    }
+    };
 
-    updateVisibleItems()
-    window.addEventListener("resize", updateVisibleItems)
-    return () => window.removeEventListener("resize", updateVisibleItems)
-  }, [])
+    updateVisibleItems();
+    window.addEventListener("resize", updateVisibleItems);
+    return () => window.removeEventListener("resize", updateVisibleItems);
+  }, []);
 
-  const maxIndex = Math.max(0, carouselItems.length - visibleItems)
+  const maxIndex = Math.max(0, carouselItems.length - visibleItems);
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => Math.max(0, prev - 1))
-  }
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1))
-  }
+    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
+  };
 
   const handleItemClick = (id: number) => {
     // 開発中のメッセージを表示
     alert("申し訳ありません。本機能は現在開発中です");
-  }
+  };
 
   return (
     <div className="relative">
@@ -84,14 +84,22 @@ export default function KnowledgeCarousel() {
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
-            className={cn("p-1 rounded-full", currentIndex === 0 ? "text-navy/40" : "hover:bg-blue/10 text-navy")}
+            className={cn(
+              "p-1 rounded-full",
+              currentIndex === 0 ? "text-navy/40" : "hover:bg-blue/10 text-navy"
+            )}
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={handleNext}
             disabled={currentIndex >= maxIndex}
-            className={cn("p-1 rounded-full", currentIndex >= maxIndex ? "text-navy/40" : "hover:bg-blue/10 text-navy")}
+            className={cn(
+              "p-1 rounded-full",
+              currentIndex >= maxIndex
+                ? "text-navy/40"
+                : "hover:bg-blue/10 text-navy"
+            )}
           >
             <ChevronRight size={20} />
           </button>
@@ -122,7 +130,7 @@ export default function KnowledgeCarousel() {
                   </div>
                 </div>
 
-                {/* Tags */}
+                {/*  Tags
                 {item.tags.length > 0 && (
                   <div className="flex items-center flex-wrap gap-1 mt-2 mb-1">
                     <Tag size={12} className="text-blue" />
@@ -133,7 +141,7 @@ export default function KnowledgeCarousel() {
                     ))}
                   </div>
                 )}
-
+              */}
                 <div className="text-xs text-navy/60 mt-2">{item.date}</div>
               </div>
             </div>
@@ -141,6 +149,5 @@ export default function KnowledgeCarousel() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
